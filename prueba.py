@@ -1,0 +1,879 @@
+import streamlit as st
+import folium
+from streamlit_folium import folium_static, st_folium
+import pandas as pd
+import numpy as np
+from geopy.geocoders import Nominatim
+from folium.plugins import HeatMap
+import openai
+import json
+import time
+
+# Load configuration from settings.json
+try:
+    with open('settings.json', 'r') as f:
+        settings = json.load(f)
+except FileNotFoundError:
+    # Default settings in case the file doesn't exist
+    settings = {
+        'azure_openai': {
+            'api_key': 'YOUR_API_KEY',
+            'api_version': '2023-12-01-preview',
+            'azure_endpoint': 'https://your-resource-name.openai.azure.com/',
+            'deployment_name': 'YOUR_DEPLOYMENT_NAME'
+        }
+    }
+
+# Page configuration
+st.set_page_config(
+    layout="wide", 
+    page_title="Explorador Solar - Latinoamérica",
+    page_icon="☀️"
+)
+
+# Enhanced custom CSS with animations and modern design
+st.markdown("""
+<style>
+    /* Main styles and colors */
+    :root {
+        --primary: #1E88E5;
+        --primary-dark: #0D47A1;
+        --accent: #FFC107;
+        --light-bg: #F5F9FF;
+        --card-bg: #FFFFFF;
+        --success: #4CAF50;
+        --warning: #FF9800;
+        --danger: #F44336;
+    }
+    
+    /* Modern look for the entire app */
+    .main {
+        background-color: var(--light-bg);
+        padding: 1rem;
+    }
+    
+    /* Header styling */
+    .main-header {
+        text-align: center;
+        color: var(--primary);
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 3px solid var(--accent);
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    }
+    
+    .sub-header {
+        color: var(--primary-dark);
+        text-align: center;
+        font-size: 1.8rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+    }
+    
+    /* Card styling */
+    .card {
+        background-color: var(--card-bg);
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+        margin-bottom: 1.5rem;
+        border-left: 4px solid var(--primary);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+    }
+    
+    /* Info box styling */
+    .info-box {
+        background-color: var(--light-bg);
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        margin-bottom: 1.5rem;
+    }
+    
+    /* Map container */
+    .center-map {
+        display: flex;
+        justify-content: center;
+        padding: 0.5rem;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+    
+    /* Divider styling */
+    .divider {
+        margin: 2rem 0;
+        height: 2px;
+        background: linear-gradient(90deg, rgba(255,255,255,0), var(--primary), rgba(255,255,255,0));
+        border: none;
+    }
+    
+    /* Coordinates box */
+    .coordinates-box {
+        background: linear-gradient(135deg, #EBF5FF, #E3F2FD);
+        padding: 1rem;
+        border-radius: 8px;
+        text-align: center;
+        font-size: 1.1rem;
+        margin-bottom: 1.5rem;
+        font-weight: 600;
+        border-left: 5px solid var(--primary);
+        color: var(--primary-dark);
+    }
+    
+    /* Chat container with fixed height and scrolling */
+    .chat-container {
+        height: 50vh;  /* Reduce height to make room for input */
+        overflow-y: auto;
+        border: 1px solid #e0e0e0;
+        border-radius: 10px;
+        padding: 10px;
+        margin-bottom: 10px;  /* Reduced margin to bring input closer */
+        background-color: #f9f9f9;
+    }
+    
+    .message-container {
+        display: flex;
+        margin-bottom: 0.8rem;
+    }
+    
+    .user-message {
+        background-color: #E3F2FD;
+        padding: 0.8rem;
+        border-radius: 18px 18px 0 18px;
+        margin-left: auto;
+        max-width: 80%;
+    }
+    
+    .assistant-message {
+        background-color: #F5F5F5;
+        padding: 0.8rem;
+        border-radius: 18px 18px 18px 0;
+        margin-right: auto;
+        max-width: 80%;
+    }
+    
+    /* Agent sidebar */
+    .agent-sidebar {
+        background: linear-gradient(135deg, #E8F5E9, #C8E6C9);
+        padding: 1.2rem;
+        border-radius: 12px;
+        margin-bottom: 1rem;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    }
+    
+    /* Button styling */
+    .stButton button {
+        background-color: var(--primary);
+        color: white;
+        border-radius: 8px;
+        padding: 0.5rem 1rem;
+        font-weight: 500;
+        border: none;
+        transition: all 0.2s;
+    }
+    
+    .stButton button:hover {
+        background-color: var(--primary-dark);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Metrics styling */
+    .css-1r6slb0 {
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        padding: 1rem;
+    }
+    
+    /* Tab styling */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 1rem;
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        height: 3rem;
+        white-space: pre-wrap;
+        background-color: white;
+        border-radius: 8px 8px 0 0;
+        padding: 0.5rem 1rem;
+        border: none;
+    }
+    
+    .stTabs [aria-selected="true"] {
+        background-color: var(--primary);
+        color: white;
+    }
+    
+    /* Chat input */
+    .stChatInput {
+        border-radius: 24px;
+        padding: 0.3rem 1rem;
+        margin-top: 1rem;
+    }
+    
+    /* Add smooth scrolling for the entire app */
+    * {
+        scroll-behavior: smooth;
+    }
+    
+    /* Sidebar menu styling */
+    .sidebar-menu {
+        background-color: white;
+        border-radius: 12px;
+        overflow: hidden;
+        margin-bottom: 1rem;
+    }
+    
+    .menu-option {
+        padding: 1rem;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .menu-option:hover {
+        background-color: #F0F7FF;
+    }
+    
+    .menu-option.active {
+        background-color: var(--primary);
+        color: white;
+        font-weight: 600;
+    }
+    
+    /* Improve radio button styling */
+    .stRadio > div {
+        padding: 0.5rem;
+        background-color: white;
+        border-radius: 8px;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# Define functions that the LLM can call
+def click_on_map(lat, lng):
+    """
+    Simulate clicking on a specific location on the map
+    """
+    if 'selected_location' not in st.session_state:
+        st.session_state.selected_location = None
+    
+    st.session_state.selected_location = (float(lat), float(lng))
+    return f"Clicked on map at latitude {lat}, longitude {lng}"
+
+def change_menu(menu_name):
+    """
+    Change the active menu section
+    """
+    if menu_name in ["Mapa Interactivo", "Apartado 2", "Apartado 3"]:
+        st.session_state.menu = menu_name
+        return f"Changed to menu: {menu_name}"
+    else:
+        return f"Invalid menu name. Available menus: Mapa Interactivo, Apartado 2, Apartado 3"
+
+# Helper function to auto-scroll chat to bottom
+def auto_scroll_chat():
+    js = '''
+    <script>
+        function scrollChatToBottom() {
+            var chatContainer = document.querySelector('.chat-container');
+            if (chatContainer) {
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+        }
+        // Execute immediately and after a delay to ensure content is rendered
+        scrollChatToBottom();
+        setTimeout(scrollChatToBottom, 300);
+        // Also set a periodic check in case new content is loaded
+        setInterval(scrollChatToBottom, 500);
+    </script>
+    '''
+    st.markdown(js, unsafe_allow_html=True)
+
+# The function calling setup for Azure OpenAI
+def chat_with_azure_openai(prompt, chat_history):
+    # Create Azure OpenAI client
+    client = openai.AzureOpenAI(
+        api_key=settings['azure_openai']['api_key'],
+        api_version=settings['azure_openai']['api_version'],
+        azure_endpoint=settings['azure_openai']['azure_endpoint']
+    )
+    
+    # Define function schemas for the LLM to understand
+    functions = [
+        {
+            "name": "click_on_map",
+            "description": "Click on a specific location on the map. Use this when the user asks to select or click on a specific city, location, or coordinates on the map.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "lat": {
+                        "type": "number",
+                        "description": "The latitude coordinate"
+                    },
+                    "lng": {
+                        "type": "number",
+                        "description": "The longitude coordinate"
+                    }
+                },
+                "required": ["lat", "lng"]
+            }
+        },
+        {
+            "name": "change_menu",
+            "description": "Change to a different menu section in the application",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "menu_name": {
+                        "type": "string",
+                        "description": "The name of the menu section to change to",
+                        "enum": ["Mapa Interactivo", "Apartado 2", "Apartado 3"]
+                    }
+                },
+                "required": ["menu_name"]
+            }
+        }
+    ]
+    
+    system_message = """
+    Eres un asistente experto en instalaciones solares que puede interactuar con un mapa de Latinoamérica. 
+    Puedes ayudar a los usuarios a explorar ubicaciones potenciales para instalaciones solares.
+    
+    Tienes la capacidad de:
+    1. Hacer clic en ubicaciones específicas del mapa (usando la función click_on_map)
+    2. Cambiar entre diferentes secciones del menú (usando la función change_menu)
+    
+    Cuando los usuarios te pidan interactuar con el mapa:
+    - Si mencionan una ciudad o ubicación específica, usa la función click_on_map con las coordenadas aproximadas de esa ubicación
+    - Si piden ver una sección diferente, usa la función change_menu
+    
+    Datos importantes sobre Latinoamérica y energía solar:
+    - México, Chile, Brasil y Colombia son líderes en adopción de energía solar
+    - La región ecuatorial tiene alta radiación solar anual
+    - Los desiertos de Atacama (Chile) y Sonora (México) tienen condiciones óptimas para energía solar
+    
+    Proporciona explicaciones claras y concisas sobre las instalaciones solares y cómo las ubicaciones seleccionadas pueden ser adecuadas para proyectos solares.
+    """
+    
+    messages = [
+        {"role": "system", "content": system_message}
+    ] + chat_history + [{"role": "user", "content": prompt}]
+    
+    # Call the Azure OpenAI API with function calling capability
+    try:
+        response = client.chat.completions.create(
+            model=settings['azure_openai']['deployment_name'],
+            messages=messages,
+            temperature=0.5,
+            max_tokens=16384,
+            functions=functions,
+            function_call="auto"  # Let the model decide when to call functions
+        )
+        
+        response_message = response.choices[0].message
+        
+        # Check if the model wants to call a function
+        if hasattr(response_message, 'function_call') and response_message.function_call:
+            function_name = response_message.function_call.name
+            function_args = json.loads(response_message.function_call.arguments)
+            
+            # Execute the appropriate function
+            if function_name == "click_on_map":
+                result = click_on_map(function_args.get("lat"), function_args.get("lng"))
+            elif function_name == "change_menu":
+                result = change_menu(function_args.get("menu_name"))
+            else:
+                result = "Unknown function"
+            
+            # Add the function response to the conversation
+            messages.append({"role": "assistant", "content": None, "function_call": {"name": function_name, "arguments": response_message.function_call.arguments}})
+            messages.append({"role": "function", "name": function_name, "content": result})
+            
+            # Get a new response from the model
+            second_response = client.chat.completions.create(
+                model=settings['azure_openai']['deployment_name'],
+                messages=messages,
+                temperature=0.5,
+                max_tokens=16384
+            )
+            
+            return second_response.choices[0].message.content
+        
+        # If no function call, return the response directly
+        return response_message.content
+    except Exception as e:
+        return f"Error al comunicarse con el servicio de OpenAI: {str(e)}"
+
+# Función para obtener información sobre la ubicación
+def get_location_info(lat, lon):
+    geolocator = Nominatim(user_agent="streamlit_app")
+    try:
+        location = geolocator.reverse((lat, lon), language="es")
+        return location.address if location else "Información no disponible"
+    except:
+        return "Error al obtener información de ubicación"
+
+# Generar datos aleatorios para el mapa de calor dentro del radio especificado
+def generate_heatmap_data_in_radius(center_lat, center_lon, radius_km=2, num_points=200):
+    # Radio en grados aproximadamente (1 grado ≈ 111 km en el ecuador)
+    radius_degree = radius_km / 111
+    
+    # Generar puntos aleatorios dentro del radio
+    np.random.seed(42)  # Para reproducibilidad
+    
+    # Generar puntos aleatorios en un círculo usando coordenadas polares
+    r = radius_degree * np.sqrt(np.random.uniform(0, 1, num_points))
+    theta = np.random.uniform(0, 2 * np.pi, num_points)
+    
+    # Convertir a coordenadas cartesianas
+    x = r * np.cos(theta)
+    y = r * np.sin(theta)
+    
+    # Intensidad de los puntos (más intensos cerca del centro)
+    intensity = 1 - (r / radius_degree)
+    
+    # Crear lista de datos para el mapa de calor
+    heat_data = []
+    for i in range(num_points):
+        lat = center_lat + y[i]
+        lon = center_lon + x[i]
+        heat_data.append([lat, lon, intensity[i]])
+    
+    return heat_data
+
+# Initialize session state variables
+if 'menu' not in st.session_state:
+    st.session_state.menu = "Mapa Interactivo"
+
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+if 'selected_location' not in st.session_state:
+    st.session_state.selected_location = None
+
+# Initialize session state variables
+if 'menu' not in st.session_state:
+    st.session_state.menu = "Mapa Interactivo"
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+if 'selected_location' not in st.session_state:
+    st.session_state.selected_location = None
+
+# Apply custom CSS for fixed chat positioning
+st.markdown("""
+<style>
+    .chat-container {
+        height: 50vh;  /* Reduce height to make room for input */
+        overflow-y: auto;
+        border: 1px solid #e0e0e0;
+        border-radius: 10px;
+        padding: 10px;
+        margin-bottom: 10px;  /* Reduced margin to bring input closer */
+        background-color: #f9f9f9;
+    }
+    .message-container {
+        margin-bottom: 10px;
+        display: flex;
+        flex-direction: column;
+    }
+    .user-message {
+        background-color: #E3F2FD;
+        padding: 8px 12px;
+        border-radius: 15px 15px 0 15px;
+        align-self: flex-end;
+        max-width: 80%;
+        margin-left: auto;
+    }
+    .assistant-message {
+        background-color: #E8F5E9;
+        padding: 8px 12px;
+        border-radius: 15px 15px 15px 0;
+        align-self: flex-start;
+        max-width: 80%;
+    }
+    .agent-sidebar {
+        padding: 15px;
+        background-color: #f5f5f5;
+        border-radius: 10px;
+        margin-bottom: 15px;
+    }
+    .main-header {
+        font-weight: 600;
+    }
+    .stChatInputContainer {
+        position: fixed;
+        bottom: 20px;
+        left: 1.5%;  /* Align with column */
+        width: 23%;  /* Match approximately column width */
+        background-color: white;
+        padding: 10px;
+        border-radius: 10px;
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        z-index: 1000;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# Function to ensure chat always scrolls to bottom
+
+
+# App Header with logo-like design
+st.markdown("""
+<div style="text-align: center; padding: 1rem 0;">
+    <div style="font-size: 3rem; color: #1E88E5; margin-bottom: -0.5rem;">☀️</div>
+    <h1 class='main-header'>Explorador de Mapas para Instalaciones Solares</h1>
+</div>
+""", unsafe_allow_html=True)
+
+# Layout with columns for chat and map
+col_chat, col_content = st.columns([1, 3])
+
+# Replace the chat container section with this code
+with col_chat:
+    st.markdown("<div class='agent-sidebar'>", unsafe_allow_html=True)
+    st.markdown("""
+    <div style="display: flex; align-items: center; gap: 0.8rem;">
+        <div style="background-color: #4CAF50; width: 40px; height: 40px; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 1.5rem;">🤖</div>
+        <div>
+            <h3 style="margin: 0;">Asistente Solar</h3>
+            <p style="margin: 0; opacity: 0.8; font-size: 0.9rem;">En línea y listo para ayudar</p>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    st.write("Haz preguntas sobre instalaciones solares o pide que interactúe con el mapa por ti.")
+    st.markdown("</div>", unsafe_allow_html=True)
+    
+    # Create a container for the chat messages
+    chat_container = st.container()
+    
+    # Create a container for the input at the bottom
+    input_container = st.container()
+    
+    # Use the input container (this needs to be before displaying messages for layout purposes)
+    with input_container:
+        user_input = st.chat_input("Pregunta algo o pide interactuar con el mapa...", key="chat_input")
+    
+    # Display messages in the chat container
+    with chat_container:
+        st.markdown("<div class='chat-container' id='chat-container'>", unsafe_allow_html=True)
+        
+        # Display chat messages
+        for message in st.session_state.messages:
+            if message["role"] == "user":
+                st.markdown(f"""
+                <div class="message-container">
+                    <div class="user-message">
+                        {message["content"]}
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.markdown(f"""
+                <div class="message-container">
+                    <div class="assistant-message">
+                        {message["content"]}
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+        
+        st.markdown("</div>", unsafe_allow_html=True)
+    
+    # Add auto-scroll JavaScript
+    auto_scroll_chat()
+    
+    # Process user input
+    if user_input:
+        # Add user message to state
+        st.session_state.messages.append({"role": "user", "content": user_input})
+        
+        # Display loading animation
+        with st.spinner("Pensando..."):
+            # Get response from OpenAI
+            response = chat_with_azure_openai(user_input, st.session_state.messages)
+            
+            # Add assistant response to state
+            st.session_state.messages.append({"role": "assistant", "content": response})
+        
+        # Force rerun to update the UI
+        st.rerun()
+
+with col_content:
+    # Modern menu design with icons
+    st.markdown("<div class='sidebar-menu'>", unsafe_allow_html=True)
+    
+    menu_options = {
+        "Mapa Interactivo": "🗺️"
+        # "Apartado 2": "🧮",
+        # "Apartado 3": "📚"
+    }
+    
+    for option, icon in menu_options.items():
+        active_class = "active" if st.session_state.menu == option else ""
+        if st.markdown(f"""
+        <div class="menu-option {active_class}" onclick="
+            window.parent.postMessage({{
+                type: 'streamlit:setComponentValue',
+                value: '{option}'
+            }}, '*')
+        ">
+            <span style="font-size: 1.5rem;">{icon}</span>
+            <span>{option}</span>
+        </div>
+        """, unsafe_allow_html=True):
+            st.session_state.menu = option
+    
+    st.markdown("</div>", unsafe_allow_html=True)
+    
+    # Hidden radio button that's controlled by the custom menu
+    # menu = st.radio("", ["Mapa Interactivo", "Apartado 2", "Apartado 3"], 
+    #                index=["Mapa Interactivo", "Apartado 2", "Apartado 3"].index(st.session_state.menu),
+    #                label_visibility="collapsed",
+    #                key="menu_selection")
+
+    menu =st.radio("", ["Mapa Interactivo"],
+                   index= ["Mapa Interactivo"].index(st.session_state.menu),
+                     label_visibility="collapsed",
+                        key="menu_selection")
+    
+    # Update the menu state if changed manually
+    if menu != st.session_state.menu:
+        st.session_state.menu = menu
+
+    # Apartado 1: Mapa Interactivo
+    if st.session_state.menu == "Mapa Interactivo":
+        st.markdown("<h2 class='sub-header'>Mapa Interactivo de Latinoamérica</h2>", unsafe_allow_html=True)
+        
+        # Create a card container for the map and details
+        st.markdown("<div class='card'>", unsafe_allow_html=True)
+        
+        # Create columns for the layout
+        map_col, info_col = st.columns([7, 5])
+        
+        # Map center (aproximately center of Latin America)
+        center_lat, center_lon = -15.0, -60.0
+        
+        with map_col:
+            st.markdown("<div class='center-map'>", unsafe_allow_html=True)
+            # Create base map
+            m = folium.Map(location=[center_lat, center_lon], zoom_start=3, control_scale=True)
+            
+            # Add tile layers with proper attribution
+            folium.TileLayer(
+                'CartoDB positron',
+                attr='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+            ).add_to(m)
+            
+            folium.TileLayer(
+                'https://stamen-tiles-{s}.a.ssl.fastly.net/terrain/{z}/{x}/{y}.jpg',
+                attr='Map tiles by <a href="http://stamen.com">Stamen Design</a>, under <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a>. Data by <a href="http://openstreetmap.org">OpenStreetMap</a>, under <a href="http://www.openstreetmap.org/copyright">ODbL</a>.',
+                name='Stamen Terrain'
+            ).add_to(m)
+            
+            # Add layer control
+            folium.LayerControl().add_to(m)
+            
+            # Show map in Streamlit with click capture
+            output = st_folium(m, width=700, height=500)
+            st.markdown("</div>", unsafe_allow_html=True)
+            
+            # Process map clicks
+            if output["last_clicked"]:
+                clicked_lat = output["last_clicked"]["lat"]
+                clicked_lng = output["last_clicked"]["lng"]
+                st.session_state.selected_location = (clicked_lat, clicked_lng)
+        
+        with info_col:
+            st.markdown("<div class='info-box'>", unsafe_allow_html=True)
+            st.markdown("<h3 class='sub-header'>Detalles de la ubicación</h3>", unsafe_allow_html=True)
+            
+            if st.session_state.selected_location:
+                lat, lng = st.session_state.selected_location
+                
+                # Show coordinates in a highlighted box
+                st.markdown(f"""
+                <div class="coordinates-box">
+                    <div style="font-size: 0.9rem; opacity: 0.8; margin-bottom: 0.3rem;">COORDENADAS</div>
+                    Latitud: {lat:.6f}<br>
+                    Longitud: {lng:.6f}
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Create map to show 2 km radius area
+                detail_map = folium.Map(location=[lat, lng], zoom_start=13)
+                
+                # Add marker at selected location
+                folium.Marker(
+                    [lat, lng],
+                    popup=f"Lat: {lat:.6f}, Lon: {lng:.6f}",
+                    icon=folium.Icon(color='blue', icon='info-sign')
+                ).add_to(detail_map)
+                
+                # Add circle with 2 km radius
+                folium.Circle(
+                    location=[lat, lng],
+                    radius=2000,  # 2 km in meters
+                    color="#3186cc",
+                    fill=True,
+                    fill_color="#3186cc",
+                    fill_opacity=0.2,
+                    popup="Radio de 2 km"
+                ).add_to(detail_map)
+                
+                # Show detail map
+                st.markdown("<div class='center-map'>", unsafe_allow_html=True)
+                folium_static(detail_map, width=400, height=300)
+                st.markdown("</div>", unsafe_allow_html=True)
+                
+                # Show location info
+                location_info = get_location_info(lat, lng)
+                st.markdown("""
+                <div style="margin-top: 1rem;">
+                    <div style="font-weight: 600; color: #0D47A1; margin-bottom: 0.5rem;">
+                        📍 Información de la ubicación:
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+                st.write(location_info)
+                
+                # Add solar potential info (simulated)
+                st.markdown("""
+                <div style="margin-top: 1rem;">
+                    <div style="font-weight: 600; color: #0D47A1; margin-bottom: 0.5rem;">
+                        ☀️ Potencial Solar Estimado:
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Simulate solar potential values based on latitude
+                solar_potential = abs(lat) * 0.5  # Simulated value
+                st.progress(min(solar_potential/10, 1.0))
+                
+                if solar_potential > 7:
+                    st.success(f"Alto potencial solar: {solar_potential:.1f}/10")
+                elif solar_potential > 4:
+                    st.warning(f"Potencial solar moderado: {solar_potential:.1f}/10")
+                else:
+                    st.error(f"Bajo potencial solar: {solar_potential:.1f}/10")
+            else:
+                st.info("Haz clic en el mapa para seleccionar una ubicación y ver los detalles, o pide al asistente que seleccione una ubicación por ti.")
+            st.markdown("</div>", unsafe_allow_html=True)
+        
+        st.markdown("</div>", unsafe_allow_html=True)  # End of card
+        
+        # Add a divider
+        st.markdown("<hr class='divider'>", unsafe_allow_html=True)
+        
+        # Section for heat map based on radius
+        st.markdown("<div class='card'>", unsafe_allow_html=True)
+        st.markdown("<h3 class='sub-header'>Análisis de Radiación Solar - Radio de 2 km</h3>", unsafe_allow_html=True)
+        
+        if st.session_state.selected_location:
+            lat, lng = st.session_state.selected_location
+            
+            # Generate random data for heat map within 2 km radius
+            heat_data = generate_heatmap_data_in_radius(lat, lng, radius_km=2, num_points=300)
+            
+            # Create heat map
+            heatmap = folium.Map(location=[lat, lng], zoom_start=13)
+            
+            # Add marker at selected location
+            folium.Marker(
+                [lat, lng],
+                popup=f"Lat: {lat:.6f}, Lon: {lng:.6f}",
+                icon=folium.Icon(color='red', icon='info-sign')
+            ).add_to(heatmap)
+            
+            # Add circle with 2 km radius
+            folium.Circle(
+                location=[lat, lng],
+                radius=2000,  # 2 km en metros
+                color="#3186cc",
+                fill=False,
+                weight=2,
+                popup="Radio de 2 km"
+            ).add_to(heatmap)
+            
+            # Add heat map layer
+            HeatMap(
+                heat_data, 
+                radius=15, 
+                blur=10, 
+                max_zoom=13, 
+                gradient={
+                    '0.4': '#87CEFA', 
+                    '0.65': '#ADD8E6', 
+                    '0.8': '#4682B4', 
+                    '0.9': '#0000CD', 
+                    '1.0': '#00008B'
+                }
+            ).add_to(heatmap)
+            
+            # Show heat map
+            st.markdown("<div class='center-map'>", unsafe_allow_html=True)
+            folium_static(heatmap, width=900, height=400)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+            st.markdown("""
+            <div style="text-align: center; margin-top: 20px; padding: 15px; background-color: #f0f7ff; border-radius: 8px;">
+                <h4 style="color: #1E88E5; margin-bottom: 10px;">Interpretación del Mapa de Calor</h4>
+                <p>Este mapa de calor muestra la radiación solar estimada dentro del radio de 2 km de la ubicación seleccionada.</p>
+                <p>Los colores más intensos indican mayor radiación solar, ideal para la instalación de paneles solares.</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Solar installation information with animated cards
+            st.markdown("""
+            <h4 style="color: #0D47A1; margin: 20px 0 15px 0; text-align: center;">Recomendaciones para Instalación Solar</h4>
+            """, unsafe_allow_html=True)
+            
+            # Use two columns with animated metric cards
+            col1, col2 = st.columns(2)
+            with col1:
+                radiation = np.random.uniform(4.5, 6.5)
+                roi = np.random.uniform(3.5, 7.5)
+                
+                st.markdown(f"""
+                <div style="background: white; border-radius: 10px; padding: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 15px; border-left: 4px solid #1E88E5;">
+                    <div style="font-size: 0.9rem; color: #666;">Radiación Solar Estimada</div>
+                    <div style="font-size: 1.8rem; font-weight: bold; color: #0D47A1;">{radiation:.2f} kWh/m²/día</div>
+                </div>
+                
+                <div style="background: white; border-radius: 10px; padding: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); border-left: 4px solid #FFC107;">
+                    <div style="font-size: 0.9rem; color: #666;">ROI Estimado</div>
+                    <div style="font-size: 1.8rem; font-weight: bold; color: #FF9800;">{roi:.1f} años</div>
+                </div>
+                """, unsafe_allow_html=True)
+                
+            with col2:
+                generation = np.random.uniform(1300, 2200)
+                co2_savings = np.random.uniform(500, 1200)
+                
+                st.markdown(f"""
+                <div style="background: white; border-radius: 10px; padding: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 15px; border-left: 4px solid #4CAF50;">
+                    <div style="font-size: 0.9rem; color: #666;">Potencial de Generación</div>
+                    <div style="font-size: 1.8rem; font-weight: bold; color: #2E7D32;">{generation:.0f} kWh/kWp/año</div>
+                </div>
+                
+                <div style="background: white; border-radius: 10px; padding: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); border-left: 4px solid #9C27B0;">
+                    <div style="font-size: 0.9rem; color: #666;">Ahorro CO₂ Estimado</div>
+                    <div style="font-size: 1.8rem; font-weight: bold; color: #6A1B9A;">{co2_savings:.0f} kg/año</div>
+                </div>
+                """, unsafe_allow_html=True)
+        
+        else:
+            st.info("Selecciona una ubicación en el mapa principal para generar el análisis de radiación solar en el radio de 2 km.")
+        st.markdown("</div>", unsafe_allow_html=True)  # End of card
+
+    
