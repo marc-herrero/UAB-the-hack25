@@ -1,13 +1,18 @@
 import streamlit as st
 import openai
+import json
+
+# Load configuration from settings.json
+with open('settings.json', 'r') as f:
+    settings = json.load(f)
 
 def chat_with_azure_openai(prompt):
+    # Create Azure OpenAI client
     client = openai.AzureOpenAI(
-        api_key="6evUUU8hO6Z13XrWLqupolcAtbxiOdCiw0LBeu2prfMuqEd33BwUJQQJ99BCACYeBjFXJ3w3AAAAACOGQmQt",
-        api_version="2023-12-01-preview",  # Usa la última versión
-        azure_endpoint="https://ai-hackathonuabpayretailers082809715538.openai.azure.com/openai/deployments/gpt-4o-mini/chat/completions?api-version=2024-10-21",
+        api_key=settings['azure_openai']['api_key'],
+        api_version=settings['azure_openai']['api_version'],
+        azure_endpoint=settings['azure_openai']['azure_endpoint']
     )
-
     response = client.chat.completions.create(
         model="YOUR_DEPLOYMENT_NAME",  # Nombre del modelo desplegado
         messages=[

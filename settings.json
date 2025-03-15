@@ -1,0 +1,8 @@
+{
+    "azure_openai": {
+      "api_key": "6evUUU8hO6Z13XrWLqupolcAtbxiOdCiw0LBeu2prfMuqEd33BwUJQQJ99BCACYeBjFXJ3w3AAAAACOGQmQt",
+      "api_version": "2023-12-01-preview",
+      "azure_endpoint": "https://ai-hackathonuabpayretailers082809715538.openai.azure.com/openai/deployments/gpt-4o-mini/chat/completions?api-version=2024-10-21",
+      "deployment_name": "gpt-4o-mini"
+    }
+}
