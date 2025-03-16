@@ -1,11 +1,16 @@
 from get_slope_aspect import get_terrain_data
+from get_irradiation import get_interpolated_irradiance_df
 import numpy as np
 import pandas as pd
 import requests
 import matplotlib.pyplot as plt
 
 # Get terrain data as a dataframe with columns: latitude, longitude, slope, aspect
-data = get_terrain_data(37.7, 37.8, -122.5, -122.4, resolution=30)
+terrain_data = get_terrain_data(37.7, 37.8, -122.5, -122.4, resolution=30)
+
+irradiance_data = pd.read_csv('irradiance_data_res4.0.csv')
+irradiance_data = get_interpolated_irradiance_df(irradiance_data, terrain_data)
+
 
 def calculate_solar_energy_production(irradiance, slope, aspect, latitude, panel_efficiency=0.2, panel_area=1.0):
     """
@@ -72,30 +77,29 @@ def calculate_solar_energy_production(irradiance, slope, aspect, latitude, panel
     
     return energy_production
 
+
+
 # Extract slope and aspect from the terrain dataframe
-slope = data['slope'].values
-aspect = data['aspect'].values
+slope = terrain_data['slope'].values
+aspect = terrain_data['aspect'].values
 
 # Use mean latitude from the dataset for optimal tilt calculation
-mean_latitude = (data['latitude'].min() + data['latitude'].max()) / 2
-
-# Assuming irradiance data (you might need to get this from another source)
-irradiance = 1000  # W/m² (typical peak solar irradiance)
+mean_latitude = (terrain_data['latitude'].min() + terrain_data['latitude'].max()) / 2
 
 # Calculate energy production with improved model
-energy_production = calculate_solar_energy_production(irradiance, slope, aspect, mean_latitude)
+energy_production = calculate_solar_energy_production(irradiance_data, slope, aspect, mean_latitude)
 
 # Add energy production to the dataframe
-data['Energy Production (W)'] = energy_production
+terrain_data['Energy Production (W)'] = energy_production
 
 # Create a figure with 3 subplots (1 row, 3 columns)
 fig, axes = plt.subplots(1, 3, figsize=(18, 6))
 
 # Plot 1: Terrain Slope
 scatter1 = axes[0].scatter(
-    data['longitude'], 
-    data['latitude'], 
-    c=data['slope'],
+    terrain_data['longitude'], 
+    terrain_data['latitude'], 
+    c=terrain_data['slope'],
     cmap='viridis', 
     alpha=0.7,
     vmin=0,
@@ -108,9 +112,9 @@ cbar1 = plt.colorbar(scatter1, ax=axes[0], label='Slope (degrees)')
 
 # Plot 2: Terrain Aspect
 scatter2 = axes[1].scatter(
-    data['longitude'], 
-    data['latitude'], 
-    c=data['aspect'],
+    terrain_data['longitude'], 
+    terrain_data['latitude'], 
+    c=terrain_data['aspect'],
     cmap='hsv',  # Circular colormap for directional data
     alpha=0.7,
     vmin=0,
@@ -125,9 +129,9 @@ cbar2.ax.set_yticklabels(['N (0°)', 'E (90°)', 'S (180°)', 'W (270°)', 'N (3
 
 # Plot 3: Solar Energy Production
 scatter3 = axes[2].scatter(
-    data['longitude'], 
-    data['latitude'], 
-    c=data['Energy Production (W)'],
+    terrain_data['longitude'], 
+    terrain_data['latitude'], 
+    c=terrain_data['Energy Production (W)'],
     cmap='hot', 
     alpha=0.7
 )
