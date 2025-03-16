@@ -71,8 +71,8 @@ Our platform uses advanced algorithms to analyze terrain characteristics, such a
 For optimal solar panel installation, this feature computes the ideal tilt angle and direction based on your location’s latitude:
 
 <div style="text-align: center;">
-    <img src="images/slope_aspect_energy_matrix.png" height="250" style="display: inline-block; margin-right: 50px;">
-    <img src="images/slope_aspect_curves.png" height="250" style="display: inline-block;">
+    <img src="images/slope_aspect_energy_matrix.png" height="300" style="display: inline-block; margin-right: 50px;">
+    <img src="images/slope_aspect_curves.png" height="300" style="display: inline-block;">
 </div>
 
 ### Visual Installation Analysis
