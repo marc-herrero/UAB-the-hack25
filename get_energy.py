@@ -2,13 +2,15 @@ from get_slope_aspect import get_terrain_data
 from get_irradiation import get_interpolated_irradiance_df
 import numpy as np
 import pandas as pd
-import requests
 import matplotlib.pyplot as plt
 
 # Get terrain data as a dataframe with columns: latitude, longitude, slope, aspect
-terrain_data = get_terrain_data(37.7, 37.8, -122.5, -122.4, resolution=30)
+min_lat, max_lat = -26, -25
+min_lon, max_lon = -71, -70
 
-irradiance_data = pd.read_csv('irradiance_data_res4.0.csv')
+terrain_data = get_terrain_data(min_lat, max_lat, min_lon, max_lon, resolution=30)
+
+irradiance_data = pd.read_csv('irradiance_data_full_res2.csv')
 irradiance_data = get_interpolated_irradiance_df(irradiance_data, terrain_data)
 
 
@@ -87,7 +89,9 @@ aspect = terrain_data['aspect'].values
 mean_latitude = (terrain_data['latitude'].min() + terrain_data['latitude'].max()) / 2
 
 # Calculate energy production with improved model
-energy_production = calculate_solar_energy_production(irradiance_data, slope, aspect, mean_latitude)
+# Extract the irradiance values from the DataFrame
+irradiance_values = irradiance_data['irradiance'].values  # Replace 'irradiance' with actual column name
+energy_production = calculate_solar_energy_production(irradiance_values, slope, aspect, mean_latitude)
 
 # Add energy production to the dataframe
 terrain_data['Energy Production (W)'] = energy_production

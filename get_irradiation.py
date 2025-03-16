@@ -21,7 +21,7 @@ def get_interpolated_irradiance_df(irradiance_df: pd.DataFrame, terrain_df: pd.D
     interpolated_df = pd.DataFrame({
         'latitude': terrain_df['latitude'],
         'longitude': terrain_df['longitude'],
-        'interpolated_irradiance': interpolated_values
+        'irradiance': interpolated_values
     })
     
     return interpolated_df
