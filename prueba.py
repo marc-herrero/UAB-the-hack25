@@ -14,6 +14,8 @@ import base64
 from PIL import Image
 import io
 
+from get_energy import get_energy_production_df
+
 # Load configuration from settings.json
 try:
     with open('settings.json', 'r') as f:
@@ -430,32 +432,26 @@ def get_location_info(lat, lon):
     except:
         return "Error al obtener información de ubicación"
 
-# Generar datos aleatorios para el mapa de calor dentro del radio especificado
-def generate_heatmap_data_in_radius(center_lat, center_lon, radius_km=2, num_points=200):
-    # Radio en grados aproximadamente (1 grado ≈ 111 km en el ecuador)
+
+def generate_heatmap_data_in_radius(center_lat, center_lon, radius_km=2, num_points=200) -> list:
     radius_degree = radius_km / 111
     
-    # Generar puntos aleatorios dentro del radio
-    np.random.seed(42)  # Para reproducibilidad
+    min_lat, max_lat = center_lat + np.array([-radius_degree, radius_degree])
+    min_lon, max_lon = center_lon + np.array([-radius_degree, radius_degree])
     
-    # Generar puntos aleatorios en un círculo usando coordenadas polares
-    r = radius_degree * np.sqrt(np.random.uniform(0, 1, num_points))
-    theta = np.random.uniform(0, 2 * np.pi, num_points)
+    terrain_df = get_energy_production_df(min_lat, max_lat, min_lon, max_lon, resolution=100)
     
-    # Convertir a coordenadas cartesianas
-    x = r * np.cos(theta)
-    y = r * np.sin(theta)
+    # Calculate distances from center
+    distances = np.sqrt((terrain_df['latitude'] - center_lat)**2 + (terrain_df['longitude'] - center_lon)**2)
     
-    # Intensidad de los puntos (más intensos cerca del centro)
-    intensity = 1 - (r / radius_degree)
-    
-    # Crear lista de datos para el mapa de calor
+    # Filter to only include points within the radius
+    filtered_terrain_df = terrain_df[distances <= radius_degree]
+
+    # Return a list of (latitude, longitude, intensity) tuples from filtered terrain_df
     heat_data = []
-    for i in range(num_points):
-        lat = center_lat + y[i]
-        lon = center_lon + x[i]
-        heat_data.append([lat, lon, intensity[i]])
-    
+    for _, row in filtered_terrain_df.iterrows():
+        heat_data.append((row['latitude'], row['longitude'], row['Energy Production (W)']))
+    # print(*heat_data, sep='\n')
     return heat_data
 
 def chat_with_azure_openai_image(prompt, image_data=None):
@@ -660,28 +656,30 @@ with col_chat:
         # Force rerun to update the UI
         st.rerun()
 
-if "menu" not in st.session_state:
-    st.session_state.menu = "Mapa Interactivo"
-
 tabs = {
     "🗺️ Mapa": "Mapa Interactivo",
     "🤖 Chatbot": "Chatbot",
     "🌍 Comunidad": "Community Hub"
 }
 
+
 with col_content:
-    st.markdown("<style>div.stButton > button { width: 100%; }</style>", unsafe_allow_html=True)
+    # Replace the interactive menu with a simple tab selector
+    tabs = ["Mapa Interactivo", "Chatbot", "Community Hub"]
+
+    # Display tabs in a horizontal layout
+    col1, col2, col3 = st.columns(len(tabs))
+    columns = [col1, col2, col3]
 
     with st.container():
-        cols = st.columns(len(tabs))
-
-        for i, (emoji_tab, tab) in enumerate(tabs.items()):
-            if cols[i].button(emoji_tab, key=f"tab_{tab}"):
-                if st.session_state.menu != tab:  # Avoid unnecessary reruns
+        for i, tab in enumerate(tabs):
+            with columns[i]:
+                if st.button(tab, key=f"tab_{tab}"):
                     st.session_state.menu = tab
                     st.rerun()
 
-    st.markdown(f"## {st.session_state.menu}")
+    # Display the selected content
+    st.write(f"### {st.session_state.menu}")
 
     # Apartado 1: Mapa Interactivo
     if st.session_state.menu == "Mapa Interactivo":
@@ -1168,35 +1166,35 @@ with col_content:
                 
                 st.markdown("</div>", unsafe_allow_html=True)
             
-            # Mapa de Casos de Estudio
-            with st.container():
-                st.markdown('<div class="card">', unsafe_allow_html=True)
-                st.subheader("Mapa de Proyectos Comunitarios")
+            # # Mapa de Casos de Estudio
+            # with st.container():
+            #     st.markdown('<div class="card">', unsafe_allow_html=True)
+            #     st.subheader("Mapa de Proyectos Comunitarios")
                 
-                st.markdown('<div class="center-map">', unsafe_allow_html=True)
-                # Aquí integrarías un mapa (folium, pydeck, etc.)
-                st.image("https://via.placeholder.com/800x400?text=Mapa+Interactivo+de+Proyectos", use_column_width=True)
-                st.markdown('</div>', unsafe_allow_html=True)
+            #     st.markdown('<div class="center-map">', unsafe_allow_html=True)
+            #     # Aquí integrarías un mapa (folium, pydeck, etc.)
+            #     st.image("https://via.placeholder.com/800x400?text=Mapa+Interactivo+de+Proyectos", use_column_width=True)
+            #     st.markdown('</div>', unsafe_allow_html=True)
                 
-                # Formulario para añadir proyecto
-                st.subheader("Añade Tu Proyecto")
-                project_name = st.text_input("Nombre del Proyecto", key="project_name")
-                project_type = st.selectbox("Tipo de Proyecto", ["Array Solar", "Turbina Eólica", "Micro-Hidro", "Banco de Baterías", "Sistema Híbrido"], key="project_type")
-                location = st.text_input("Ubicación", key="project_location")
-                description = st.text_area("Descripción del Proyecto", key="project_description")
+            #     # Formulario para añadir proyecto
+            #     st.subheader("Añade Tu Proyecto")
+            #     project_name = st.text_input("Nombre del Proyecto", key="project_name")
+            #     project_type = st.selectbox("Tipo de Proyecto", ["Array Solar", "Turbina Eólica", "Micro-Hidro", "Banco de Baterías", "Sistema Híbrido"], key="project_type")
+            #     location = st.text_input("Ubicación", key="project_location")
+            #     description = st.text_area("Descripción del Proyecto", key="project_description")
                 
-                col1, col2 = st.columns(2)
-                with col1:
-                    cost = st.number_input("Costo Total ($USD)", min_value=0, key="project_cost")
-                with col2:
-                    capacity = st.number_input("Capacidad del Sistema (kW)", min_value=0.0, step=0.1, key="project_capacity")
+            #     col1, col2 = st.columns(2)
+            #     with col1:
+            #         cost = st.number_input("Costo Total ($USD)", min_value=0, key="project_cost")
+            #     with col2:
+            #         capacity = st.number_input("Capacidad del Sistema (kW)", min_value=0.0, step=0.1, key="project_capacity")
                 
-                project_pic = st.file_uploader("Subir Foto del Proyecto", type=["jpg", "png"], key="project_pic")
+            #     project_pic = st.file_uploader("Subir Foto del Proyecto", type=["jpg", "png"], key="project_pic")
                 
-                if st.button("Enviar Proyecto", key="submit_project"):
-                    st.success("¡Proyecto añadido al mapa comunitario!")
+            #     if st.button("Enviar Proyecto", key="submit_project"):
+            #         st.success("¡Proyecto añadido al mapa comunitario!")
                 
-                st.markdown("</div>", unsafe_allow_html=True)
+            #     st.markdown("</div>", unsafe_allow_html=True)
         
         with tab2:
             st.markdown('<h2 class="sub-header">Mercado de Fuerza Laboral y Servicios</h2>', unsafe_allow_html=True)
