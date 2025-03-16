@@ -281,12 +281,12 @@ def change_menu(menu_name):
     """
     Change the active menu section
     """
-    if menu_name in ["Mapa Interactivo", "Apartado 2", "Apartado 3"]:
+    if menu_name in ["Mapa Interactivo", "Apartado 2", "Community Hub"]:
         st.session_state.menu = menu_name
         return f"Changed to menu: {menu_name}"
     else:
-        return f"Invalid menu name. Available menus: Mapa Interactivo, Apartado 2, Apartado 3"
-
+        return f"Invalid menu name. Available menus: Mapa Interactivo, Apartado 2, Community Hub"
+    
 # Helper function to auto-scroll chat to bottom
 def auto_scroll_chat():
     js = '''
@@ -344,7 +344,7 @@ def chat_with_azure_openai(prompt, chat_history):
                     "menu_name": {
                         "type": "string",
                         "description": "The name of the menu section to change to",
-                        "enum": ["Mapa Interactivo", "Apartado 2", "Apartado 3"]
+                        "enum": ["Mapa Interactivo", "Apartado 2", "Community Hub"]
                     }
                 },
                 "required": ["menu_name"]
@@ -664,18 +664,28 @@ with col_content:
     # Modern menu design with icons
     st.markdown("<div class='sidebar-menu'>", unsafe_allow_html=True)
     
-    # Update your menu options to include Apartado 2
+    # Update menu options to include Community Hub
     menu_options = {
         "Mapa Interactivo": "🗺️",
-        "Apartado 2": "📷"
+        "Apartado 2": "📷",
+        "Community Hub": "🌐"
     }
 
-    # Update your radio button to include Apartado 2
-    menu = st.radio("", ["Mapa Interactivo", "Apartado 2"],
-                index=["Mapa Interactivo", "Apartado 2"].index(st.session_state.menu),
-                label_visibility="collapsed",
-                key="menu_selection")
+    # Initialize if not in session state
+    if 'menu' not in st.session_state:
+        st.session_state.menu = "Mapa Interactivo"
 
+    # Update radio button to include Community Hub
+    menu = st.radio("", 
+                    ["Mapa Interactivo", "Apartado 2", "Community Hub"],
+                    index=["Mapa Interactivo", "Apartado 2", "Community Hub"].index(st.session_state.menu),
+                    label_visibility="collapsed",
+                    key="menu_selection")
+
+    # Update session state when radio changes
+    st.session_state.menu = menu
+    
+    # Custom menu UI
     for option, icon in menu_options.items():
         active_class = "active" if st.session_state.menu == option else ""
         if st.markdown(f"""
@@ -706,11 +716,11 @@ with col_content:
     if st.session_state.menu not in menu_options_list:
         st.session_state.menu = menu_options_list[0]
 
-    # Now use the radio button with the correct index
-    menu = st.radio("", menu_options_list,
-                index=menu_options_list.index(st.session_state.menu),
-                label_visibility="collapsed",
-                key="menu_selection_alternate")
+    # # Now use the radio button with the correct index
+    # menu = st.radio("", menu_options_list,
+    #             index=menu_options_list.index(st.session_state.menu),
+    #             label_visibility="collapsed",
+    #             key="menu_selection_alternate")
 
     
     # Update the menu state if changed manually
@@ -1131,3 +1141,284 @@ with col_content:
         <p>Para obtener mejores resultados, intenta proporcionar imágenes claras y bien iluminadas de tus paneles solares.</p>
         """, unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
+
+    if st.session_state.menu == "Community Hub":
+        st.markdown('<h1 class="main-header">Community Hub</h1>', unsafe_allow_html=True)
+        
+        tab1, tab2, tab3 = st.tabs(["Knowledge Sharing", "Workforce Marketplace", "Community Challenges"])
+        
+        with tab1:
+            st.markdown('<h2 class="sub-header">Knowledge Sharing Hub</h2>', unsafe_allow_html=True)
+            
+            # AI-Moderated Q&A Forum
+            with st.container():
+                st.markdown('<div class="card">', unsafe_allow_html=True)
+                st.subheader("AI-Moderated Q&A Forum")
+                
+                # Sample questions or new question input
+                new_question = st.text_area("Ask a technical question:", 
+                                        placeholder="E.g., How to fix a solar inverter?")
+                
+                if st.button("Submit Question"):
+                    st.success("Question submitted! Our AI is generating initial answers...")
+                    # Here you would integrate with Azure OpenAI
+                
+                # Sample Q&A display
+                st.markdown("### Recent Questions")
+                with st.expander("How to troubleshoot voltage issues in my off-grid system?"):
+                    st.markdown("""
+                    **AI Response**: Check battery connections, verify controller settings, and ensure proper grounding.
+                    
+                    **Community Answers**:
+                    - **Maria (Solar Expert)**: I'd also recommend checking for corroded terminals. [Upvote: 12]
+                    - **John**: In my experience, loose connections were the main cause. [Upvote: 5]
+                    """)
+                
+                st.markdown("</div>", unsafe_allow_html=True)
+            
+            # Crowdsourced Resource Library
+            with st.container():
+                st.markdown('<div class="card">', unsafe_allow_html=True)
+                st.subheader("Resource Library")
+                
+                # Upload functionality
+                uploaded_file = st.file_uploader("Upload a resource (guide, template, video)", type=["pdf", "docx", "mp4"])
+                resource_type = st.selectbox("Resource type", ["Repair Guide", "Installation Manual", "Budget Template", "Tutorial Video"])
+                tags = st.multiselect("Tags", ["Solar", "Wind", "Hydro", "Batteries", "Wiring", "DIY", "Professional"])
+                
+                if st.button("Add to Library"):
+                    if uploaded_file is not None:
+                        st.success("Resource added to the library and automatically tagged!")
+                
+                # Sample resources
+                st.markdown("### Popular Resources")
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    st.markdown("""
+                    📄 **DIY Solar Installation Guide**  
+                    Tags: Solar, DIY, Installation  
+                    Uploaded by: Carlos  
+                    Downloads: 328
+                    """)
+                
+                with col2:
+                    st.markdown("""
+                    🎬 **Battery Bank Maintenance Tutorial**  
+                    Tags: Batteries, Maintenance, DIY  
+                    Uploaded by: Maria  
+                    Views: 573
+                    """)
+                
+                st.markdown("</div>", unsafe_allow_html=True)
+            
+            # Case Study Map
+            with st.container():
+                st.markdown('<div class="card">', unsafe_allow_html=True)
+                st.subheader("Community Projects Map")
+                
+                st.markdown('<div class="center-map">', unsafe_allow_html=True)
+                # Here you would integrate a map (folium, pydeck, etc.)
+                st.image("https://via.placeholder.com/800x400?text=Interactive+Map+of+Projects", use_column_width=True)
+                st.markdown('</div>', unsafe_allow_html=True)
+                
+                # Add project form
+                st.subheader("Add Your Project")
+                project_name = st.text_input("Project Name")
+                project_type = st.selectbox("Project Type", ["Solar Array", "Wind Turbine", "Micro-Hydro", "Battery Bank", "Hybrid System"])
+                location = st.text_input("Location")
+                description = st.text_area("Project Description")
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    cost = st.number_input("Total Cost ($USD)", min_value=0)
+                with col2:
+                    capacity = st.number_input("System Capacity (kW)", min_value=0.0, step=0.1)
+                
+                project_pic = st.file_uploader("Upload Project Photo", type=["jpg", "png"])
+                
+                if st.button("Submit Project"):
+                    st.success("Project added to the community map!")
+                
+                st.markdown("</div>", unsafe_allow_html=True)
+        
+        with tab2:
+            st.markdown('<h2 class="sub-header">Workforce & Services Marketplace</h2>', unsafe_allow_html=True)
+            
+            # Job Board
+            with st.container():
+                st.markdown('<div class="card">', unsafe_allow_html=True)
+                st.subheader("Job Board")
+                
+                listing_type = st.radio("I want to:", ["Offer my services", "Find services"])
+                
+                if listing_type == "Offer my services":
+                    st.text_input("Your Name")
+                    st.text_input("Skills/Services")
+                    st.number_input("Years of Experience", min_value=0)
+                    st.text_input("Location")
+                    st.slider("Travel Radius (km)", 0, 200, 50)
+                    st.text_area("Description of your services")
+                    st.file_uploader("Certification Documents (optional)", accept_multiple_files=True)
+                    
+                    if st.button("List My Services"):
+                        st.success("Your profile is now listed in the marketplace!")
+                else:
+                    st.text_input("Service Needed")
+                    st.text_input("Project Location")
+                    st.slider("Search Radius (km)", 0, 200, 50)
+                    st.date_input("Required By Date")
+                    st.text_area("Job Description")
+                    
+                    if st.button("Post Job"):
+                        st.success("Your job has been posted! You'll be notified of matches.")
+                
+                st.markdown("</div>", unsafe_allow_html=True)
+            
+            # Skills Verification System
+            with st.container():
+                st.markdown('<div class="card">', unsafe_allow_html=True)
+                st.subheader("Skills Verification")
+                
+                st.markdown("""
+                Take technical quizzes to earn verified badges for your profile. These will help you stand out to potential employers!
+                """)
+                
+                available_quizzes = st.selectbox("Available Quizzes", 
+                                            ["Basic Electrical Safety", "Solar Panel Installation", 
+                                            "Battery System Design", "Micro-Hydro Basics",
+                                            "Wind Turbine Maintenance"])
+                
+                if st.button("Start Quiz"):
+                    st.info("Quiz loading... You'll have 30 minutes to complete 20 questions.")
+                
+                # Sample badges display
+                st.subheader("Your Earned Badges")
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    st.markdown("🔋 **Battery Expert**")
+                with col2:
+                    st.markdown("⚡ **Electrical Safety**")
+                with col3:
+                    st.markdown("🛠️ **Solar Installer**")
+                
+                st.markdown("</div>", unsafe_allow_html=True)
+            
+            # Ratings & Reviews
+            with st.container():
+                st.markdown('<div class="card">', unsafe_allow_html=True)
+                st.subheader("Community Ratings")
+                
+                st.markdown("### Top Rated Professionals")
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.markdown("""
+                    **Miguel Rodriguez** ⭐⭐⭐⭐⭐  
+                    Solar Installation Specialist  
+                    23 completed jobs
+                    
+                    > "Miguel was professional and efficient. Highly recommended!" - Ana C.
+                    """)
+                
+                with col2:
+                    st.markdown("""
+                    **Sofia Torres** ⭐⭐⭐⭐⭐  
+                    Electrical Engineer  
+                    17 completed jobs
+                    
+                    > "Sofia helped design our off-grid system and was incredibly knowledgeable." - Marco P.
+                    """)
+                
+                st.markdown("</div>", unsafe_allow_html=True)
+        
+        with tab3:
+            st.markdown('<h2 class="sub-header">Community Challenges & Incentives</h2>', unsafe_allow_html=True)
+            
+            # Active Challenges
+            with st.container():
+                st.markdown('<div class="card">', unsafe_allow_html=True)
+                st.subheader("Active Challenges")
+                
+                # Challenge progress bars
+                st.markdown("### 100 Solar Homes Challenge - Guatemala")
+                st.progress(65)
+                st.markdown("65/100 homes completed - 15 days remaining")
+                
+                st.markdown("### Wind Power Expansion - Coastal Communities")
+                st.progress(30)
+                st.markdown("3/10 community turbines installed - 45 days remaining")
+                
+                st.markdown("### 1000 kWh Energy Savings Challenge")
+                st.progress(82)
+                st.markdown("820/1000 kWh saved this month")
+                
+                st.markdown("</div>", unsafe_allow_html=True)
+            
+            # Carbon Tracker
+            with st.container():
+                st.markdown('<div class="card">', unsafe_allow_html=True)
+                st.subheader("Community Impact")
+                
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    st.metric(label="CO₂ Reduced", value="523 tonnes", delta="↑ 42 this month")
+                
+                with col2:
+                    st.metric(label="Renewable kWh Generated", value="87,413", delta="↑ 5,210 this month")
+                
+                with col3:
+                    st.metric(label="Fossil Fuels Avoided", value="$31,265", delta="↑ $2,845 this month")
+                
+                # Carbon savings chart
+                st.subheader("Monthly Carbon Savings (tonnes CO₂)")
+                chart_data = {
+                    "months": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+                    "values": [32, 45, 67, 89, 121, 169]
+                }
+                
+                # Here you would add a chart using plotly, altair, etc.
+                st.image("https://via.placeholder.com/800x300?text=Carbon+Savings+Chart", use_column_width=True)
+                
+                st.markdown("</div>", unsafe_allow_html=True)
+            
+            # Rewards & Incentives
+            with st.container():
+                st.markdown('<div class="card">', unsafe_allow_html=True)
+                st.subheader("Rewards & Incentives")
+                
+                st.markdown("""
+                ### Available Rewards for Challenge Participants
+                
+                - **10% Discount** on solar panels from SunPower Partners
+                - **Free Technical Assessment** for your renewable energy project
+                - **Training Workshops** with certified renewable energy experts
+                - **Community Recognition** and feature in our monthly newsletter
+                
+                ### Your Current Points: 320
+                
+                Points can be earned by:
+                - Contributing to challenges
+                - Sharing knowledge in the forum
+                - Completing verified projects
+                - Bringing new members to the community
+                """)
+                
+                if st.button("Redeem Points"):
+                    st.info("Opening rewards catalog...")
+                
+                st.markdown("</div>", unsafe_allow_html=True)
+
+    # Update the sidebar to include the new menu option
+    # In your app's initialization section, add:
+    # if "menu" not in st.session_state:
+    #     st.session_state.menu = "Dashboard"
+
+    # Then in your sidebar code:
+    # st.sidebar.markdown('<div class="sidebar-menu">', unsafe_allow_html=True)
+    # for option in ["Dashboard", "Apartado 2", "Community Hub"]:
+    #     if st.sidebar.button(option, key=option):
+    #         st.session_state.menu = option
+    # st.sidebar.markdown('</div>', unsafe_allow_html=True)
