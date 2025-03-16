@@ -1,4 +1,4 @@
-# SoLatAm 🌞🌬️
+# SoLatAm 🌞
 
 ## AI-Powered Renewable Energy Transition Platform for LATAM Communities
 
