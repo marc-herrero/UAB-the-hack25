@@ -147,16 +147,12 @@ def create_3_plots(terrain_df):
     plt.show()
 
 
-def create_2_plots_indicative() -> None:
-    # Create a new visualization showing how flat terrain ignores aspect
-    plt.figure(figsize=(12, 8))
-
+def create_information_plots(mean_latitude=-45, save_fig=False):
     # Create a grid of slope and aspect values
     slopes = np.linspace(0, 45, 10)  # Different slopes from flat to 45 degrees
     aspects = np.linspace(0, 359, 36)  # Different aspects all around
     slope_grid, aspect_grid = np.meshgrid(slopes, aspects)
 
-    mean_latitude = -45
     # Calculate energy for each combination
     energy_grid = np.zeros_like(slope_grid)
     for i in range(len(aspects)):
@@ -168,8 +164,8 @@ def create_2_plots_indicative() -> None:
     # Convert to relative values (percentage of maximum)
     energy_rel = energy_grid / np.max(energy_grid) * 100
 
-    # Create heatmap
-    plt.figure(figsize=(12, 10))
+    # Create heatmap - Figure 1
+    fig1 = plt.figure(figsize=(12, 10))
     im = plt.imshow(energy_rel, origin='lower', aspect='auto', cmap='hot',
                 extent=[0, 45, 0, 360])
     plt.colorbar(im, label='Relative Energy Potential (%)')
@@ -179,18 +175,17 @@ def create_2_plots_indicative() -> None:
     plt.yticks([0, 45, 90, 135, 180, 225, 270, 315, 360], 
             ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW', 'N'])
     plt.grid(False)
-    plt.savefig('slope_aspect_energy_matrix.png', dpi=300)
-    plt.show()
+    if save_fig:
+        plt.savefig('slope_aspect_energy_matrix.png', dpi=300)
 
-    # Also plot energy vs aspect for different slopes to show the effect
-    plt.figure(figsize=(10, 6))
-
+    # Create line plot - Figure 2
+    fig2 = plt.figure(figsize=(10, 6))
     selected_slopes = [0, 5, 15, 30]
     for slp in selected_slopes:
         # Find the closest index in our slopes array
         slp_idx = np.abs(slopes - slp).argmin()
         energy_curve = energy_rel[:, slp_idx]
-        plt.plot(aspects, energy_curve, label=f'Slope = {slp}°')
+        plt.plot(aspects, energy_curve, label=f'Slope = {slp}Â°')
 
     plt.axvline(x=0, color='blue', linestyle='--', alpha=0.3)
     plt.axvline(x=90, color='green', linestyle='--', alpha=0.3)
@@ -204,9 +199,67 @@ def create_2_plots_indicative() -> None:
             ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW', 'N'])
     plt.legend()
     plt.grid(True)
-    plt.savefig('slope_aspect_curves.png', dpi=300)
-    plt.show()
+    if save_fig:
+        plt.savefig('slope_aspect_curves.png', dpi=300)
+    
+    return fig1, fig2  # Return both figures
 
+
+import streamlit as st
+import matplotlib.pyplot as plt
+import pandas as pd
+
+def create_3_plots_st(terrain_df):
+    # Create a figure with 3 subplots (1 row, 3 columns)
+    fig, axes = plt.subplots(1, 3, figsize=(18, 6))
+
+    # Plot 1: Terrain Slope
+    scatter1 = axes[0].scatter(
+        terrain_df['longitude'], 
+        terrain_df['latitude'], 
+        c=terrain_df['slope'],
+        cmap='viridis', 
+        alpha=0.7,
+        vmin=0,
+        vmax=90
+    )
+    axes[0].set_title('Terrain Slope')
+    axes[0].set_xlabel('Longitude')
+    axes[0].set_ylabel('Latitude')
+    cbar1 = fig.colorbar(scatter1, ax=axes[0], label='Slope (degrees)')
+
+    # Plot 2: Terrain Aspect
+    scatter2 = axes[1].scatter(
+        terrain_df['longitude'], 
+        terrain_df['latitude'], 
+        c=terrain_df['aspect'],
+        cmap='hsv',  # Circular colormap for directional data
+        alpha=0.7,
+        vmin=0,
+        vmax=360
+    )
+    axes[1].set_title('Terrain Aspect')
+    axes[1].set_xlabel('Longitude')
+    axes[1].set_ylabel('Latitude')
+    cbar2 = fig.colorbar(scatter2, ax=axes[1], label='Aspect (degrees)')
+    cbar2.ax.set_yticks([0, 90, 180, 270, 360])
+    cbar2.ax.set_yticklabels(['N (0°)', 'E (90°)', 'S (180°)', 'W (270°)', 'N (360°)'])
+
+    # Plot 3: Solar Energy Production
+    scatter3 = axes[2].scatter(
+        terrain_df['longitude'], 
+        terrain_df['latitude'], 
+        c=terrain_df['Energy Production (W)'],
+        cmap='hot', 
+        alpha=0.7
+    )
+    axes[2].set_title('Solar Energy Production')
+    axes[2].set_xlabel('Longitude')
+    axes[2].set_ylabel('Latitude')
+    cbar3 = fig.colorbar(scatter3, ax=axes[2], label='Energy Production (W)')
+
+    plt.tight_layout()
+    st.pyplot(fig)
 
 
 

@@ -14,9 +14,35 @@ import base64
 from PIL import Image
 import io
 
-from get_energy import get_energy_production_df
+# Ensure you have this import at the top of your script
+import matplotlib.pyplot as plt
 
+from get_energy import get_energy_production_df, create_3_plots_st, create_information_plots
 # Load configuration from settings.json
+
+def show_information():
+    st.header("Potencial de Energía Solar por Propiedades del Terreno")
+    
+    # Get user input for latitude
+    latitude = st.slider("Latitud", min_value=-90, max_value=90, value=-45, 
+                        help="Especifica la latitud para ver la orientación óptima de los paneles")
+    
+    # Generate the plots
+    heatmap_fig, curves_fig = create_information_plots(mean_latitude=latitude)
+    
+    # Display both plots side by side
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.subheader("Potencial de Energía Solar por Pendiente y Orientación")
+        st.pyplot(heatmap_fig)
+    
+    with col2:
+        st.subheader("Efecto de la Pendiente en la Producción de Energía")
+        st.pyplot(curves_fig)
+
+terrain_df = pd.DataFrame()
+
 try:
     with open('settings.json', 'r') as f:
         settings = json.load(f)
@@ -283,11 +309,11 @@ def change_menu(menu_name):
     """
     Change the active menu section
     """
-    if menu_name in ["Mapa Interactivo", "Apartado 2", "Community Hub"]:
+    if menu_name in [ "Información", "Viabilidad", "Apartado 2", "Community Hub"]:
         st.session_state.menu = menu_name
         return f"Changed to menu: {menu_name}"
     else:
-        return f"Invalid menu name. Available menus: Mapa Interactivo, Apartado 2, Community Hub"
+        return f"Invalid menu name. Available menus: Viabilidad, Apartado 2, Community Hub"
     
 # Helper function to auto-scroll chat to bottom
 def auto_scroll_chat():
@@ -346,7 +372,7 @@ def chat_with_azure_openai(prompt, chat_history):
                     "menu_name": {
                         "type": "string",
                         "description": "The name of the menu section to change to",
-                        "enum": ["Mapa Interactivo", "Apartado 2", "Community Hub"]
+                        "enum": ["Viabilidad", "Apartado 2", "Community Hub"]
                     }
                 },
                 "required": ["menu_name"]
@@ -434,6 +460,7 @@ def get_location_info(lat, lon):
 
 
 def generate_heatmap_data_in_radius(center_lat, center_lon, radius_km=2, num_points=200) -> list:
+    global terrain_df
     radius_degree = radius_km / 111
     
     min_lat, max_lat = center_lat + np.array([-radius_degree, radius_degree])
@@ -502,7 +529,7 @@ def chat_with_azure_openai_image(prompt, image_data=None):
 
 # Initialize session state variables
 if 'menu' not in st.session_state:
-    st.session_state.menu = "Mapa Interactivo"
+    st.session_state.menu = "Viabilidad"
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -512,7 +539,7 @@ if 'selected_location' not in st.session_state:
 
 # # Initialize session state variables
 # if 'menu' not in st.session_state:
-#     st.session_state.menu = "Mapa Interactivo"
+#     st.session_state.menu = "Viabilidad"
 # if "messages" not in st.session_state:
 #     st.session_state.messages = []
 # if 'selected_location' not in st.session_state:
@@ -657,19 +684,20 @@ with col_chat:
         st.rerun()
 
 tabs = {
-    "🗺️ Mapa": "Mapa Interactivo",
+    "🗺️ Mapa": "Viabilidad",
     "🤖 Chatbot": "Chatbot",
-    "🌍 Comunidad": "Community Hub"
+    "🌍 Comunidad": "Community Hub",
+    "📊 Información general": "Información"
 }
 
 
 with col_content:
     # Replace the interactive menu with a simple tab selector
-    tabs = ["Mapa Interactivo", "Chatbot", "Community Hub"]
+    tabs = ["Información", "Viabilidad", "Chatbot", "Community Hub"]
 
     # Display tabs in a horizontal layout
-    col1, col2, col3 = st.columns(len(tabs))
-    columns = [col1, col2, col3]
+    col1, col2, col3, col4 = st.columns(len(tabs))
+    columns = [col1, col2, col3, col4]
 
     with st.container():
         for i, tab in enumerate(tabs):
@@ -681,8 +709,19 @@ with col_content:
     # Display the selected content
     st.write(f"### {st.session_state.menu}")
 
-    # Apartado 1: Mapa Interactivo
-    if st.session_state.menu == "Mapa Interactivo":
+    if st.session_state.menu == "Información":
+        # plot a png file
+        image = Image.open('Interpolated-Solar-irradiance-LatAm.png')
+        st.image(image, caption='Panel Solar', use_container_width=True)
+        
+        image2 = Image.open('LatAm-sun-production.png')
+        st.image(image2, caption='Producción de energía solar', use_container_width=True)
+        
+        show_information()
+
+
+    # Apartado 1: Viabilidad
+    if st.session_state.menu == "Viabilidad":
 
         st.markdown("<h2 class='sub-header'>Mapa Interactivo de Latinoamérica</h2>", unsafe_allow_html=True)
         
@@ -790,6 +829,8 @@ with col_content:
                 # Simulate solar potential values based on latitude
                 solar_potential = abs(lat) * 0.5  # Simulated value
                 st.progress(min(solar_potential/10, 1.0))
+
+                solar_potential = min(solar_potential, 10)
                 
                 if solar_potential > 7:
                     st.success(f"Alto potencial solar: {solar_potential:.1f}/10")
@@ -903,6 +944,11 @@ with col_content:
                 </div>
                 """, unsafe_allow_html=True)
         
+            # Display the 3 plots
+            st.markdown("<h3 class='sub-header'>Análisis del Terreno y Potencial de Energía Solar</h3>", unsafe_allow_html=True)
+            create_3_plots_st(terrain_df)  # Assuming terrain_df is your DataFrame with the necessary data
+
+
         else:
             st.info("Selecciona una ubicación en el mapa principal para generar el análisis de radiación solar en el radio de 2 km.")
         st.markdown("</div>", unsafe_allow_html=True)  # End of card
