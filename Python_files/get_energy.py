@@ -1,5 +1,5 @@
-from get_slope_aspect import get_terrain_data
-from get_irradiation import get_interpolated_irradiance_df
+from .get_slope_aspect import get_terrain_data
+from .get_irradiation import get_interpolated_irradiance_df
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -143,7 +143,7 @@ def create_3_plots(terrain_df):
 
     plt.tight_layout()
     plt.suptitle('Terrain Analysis and Solar Energy Production Potential', fontsize=16, y=1.05)
-    plt.savefig('terrain_solar_analysis_example.png', dpi=300, bbox_inches='tight')
+    plt.savefig('images/terrain_solar_analysis_example.png', dpi=300, bbox_inches='tight')
     plt.show()
 
 
@@ -176,7 +176,7 @@ def create_information_plots(mean_latitude=-45, save_fig=False):
             ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW', 'N'])
     plt.grid(False)
     if save_fig:
-        plt.savefig('slope_aspect_energy_matrix.png', dpi=300)
+        plt.savefig('images/slope_aspect_energy_matrix.png', dpi=300)
 
     # Create line plot - Figure 2
     fig2 = plt.figure(figsize=(10, 6))
@@ -200,7 +200,7 @@ def create_information_plots(mean_latitude=-45, save_fig=False):
     plt.legend()
     plt.grid(True)
     if save_fig:
-        plt.savefig('slope_aspect_curves.png', dpi=300)
+        plt.savefig('images/slope_aspect_curves.png', dpi=300)
     
     return fig1, fig2  # Return both figures
 

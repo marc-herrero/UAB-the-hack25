@@ -7,18 +7,12 @@ from geopy.geocoders import Nominatim
 from folium.plugins import HeatMap
 import openai
 import json
-import time
 import speech_recognition as sr
-from io import BytesIO
 import base64
 from PIL import Image
 import io
 
-# Ensure you have this import at the top of your script
-import matplotlib.pyplot as plt
-
-from get_energy import get_energy_production_df, create_3_plots_st, create_information_plots
-# Load configuration from settings.json
+from Python_files.get_energy import get_energy_production_df, create_3_plots_st, create_information_plots
 
 def show_information():
     st.header("Potencial de Energía Solar por Propiedades del Terreno")
@@ -43,6 +37,7 @@ def show_information():
 
 terrain_df = pd.DataFrame()
 
+# Load configuration from settings.json
 try:
     with open('settings.json', 'r') as f:
         settings = json.load(f)
