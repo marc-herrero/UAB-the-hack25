@@ -4,17 +4,9 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-# Get terrain data as a dataframe with columns: latitude, longitude, slope, aspect
-min_lat, max_lat = -26, -25
-min_lon, max_lon = -71, -70
-
-terrain_data = get_terrain_data(min_lat, max_lat, min_lon, max_lon, resolution=30)
-
-irradiance_data = pd.read_csv('irradiance_data_full_res2.csv')
-irradiance_data = get_interpolated_irradiance_df(irradiance_data, terrain_data)
 
 
-def calculate_solar_energy_production(irradiance, slope, aspect, latitude, panel_efficiency=0.2, panel_area=1.0):
+def _calculate_solar_energy_production(irradiance, slope, aspect, latitude, panel_efficiency=0.2, panel_area=1.0):
     """
     Calculate solar panel energy production based on terrain data.
     
@@ -33,7 +25,7 @@ def calculate_solar_energy_production(irradiance, slope, aspect, latitude, panel
     in_northern_hemisphere = latitude > 0
     
     # Optimal tilt is approximately equal to the absolute latitude
-    optimal_slope = abs(latitude)
+    optimal_slope = np.abs(latitude)
     
     # Optimal aspect is South (180°) in Northern hemisphere, North (0° or 360°) in Southern
     optimal_aspect = 180 if in_northern_hemisphere else 0
@@ -63,10 +55,7 @@ def calculate_solar_energy_production(irradiance, slope, aspect, latitude, panel
     # Combine direct and diffuse components
     aspect_factor_base = direct_component * direct_factor + diffuse_component * diffuse_factor
     
-    # KEY FIX: For flat terrain (slope near 0), aspect becomes irrelevant
-    # Create a weighting that makes aspect factor approach 1.0 as slope approaches 0
-    slope_threshold = 5.0  # Below this slope, aspect becomes increasingly irrelevant
-    aspect_weight = np.minimum(slope / slope_threshold, 1.0)  # Linear weight from 0 to 1
+    aspect_weight = np.tanh(slope / 15.0)
     
     # Apply slope-dependent weighting to aspect factor
     aspect_factor = 1.0 - aspect_weight + aspect_weight * aspect_factor_base
@@ -80,129 +69,147 @@ def calculate_solar_energy_production(irradiance, slope, aspect, latitude, panel
     return energy_production
 
 
+raw_irradiance_data = pd.read_csv('irradiance_data_full_res2.csv')
 
-# Extract slope and aspect from the terrain dataframe
-slope = terrain_data['slope'].values
-aspect = terrain_data['aspect'].values
+def get_energy_production_df(min_lat=-26, max_lat=-25, min_lon=-71, max_lon=-70) -> pd.DataFrame:
+    terrain_data = get_terrain_data(min_lat, max_lat, min_lon, max_lon, resolution=30)
 
-# Use mean latitude from the dataset for optimal tilt calculation
-mean_latitude = (terrain_data['latitude'].min() + terrain_data['latitude'].max()) / 2
+    irradiance_data = get_interpolated_irradiance_df(raw_irradiance_data, terrain_data)
 
-# Calculate energy production with improved model
-# Extract the irradiance values from the DataFrame
-irradiance_values = irradiance_data['irradiance'].values  # Replace 'irradiance' with actual column name
-energy_production = calculate_solar_energy_production(irradiance_values, slope, aspect, mean_latitude)
+    # Extract slope and aspect from the terrain dataframe
+    slope = terrain_data['slope'].values
+    aspect = terrain_data['aspect'].values
 
-# Add energy production to the dataframe
-terrain_data['Energy Production (W)'] = energy_production
+    # Use mean latitude from the dataset for optimal tilt calculation
+    mean_latitude = (terrain_data['latitude'].min() + terrain_data['latitude'].max()) / 2
 
-# Create a figure with 3 subplots (1 row, 3 columns)
-fig, axes = plt.subplots(1, 3, figsize=(18, 6))
+    # Calculate energy production with improved model
+    # Extract the irradiance values from the DataFrame
+    irradiance_values = irradiance_data['irradiance'].values  # Replace 'irradiance' with actual column name
+    energy_production = _calculate_solar_energy_production(irradiance_values, slope, aspect, mean_latitude)
 
-# Plot 1: Terrain Slope
-scatter1 = axes[0].scatter(
-    terrain_data['longitude'], 
-    terrain_data['latitude'], 
-    c=terrain_data['slope'],
-    cmap='viridis', 
-    alpha=0.7,
-    vmin=0,
-    vmax=90
-)
-axes[0].set_title('Terrain Slope')
-axes[0].set_xlabel('Longitude')
-axes[0].set_ylabel('Latitude')
-cbar1 = plt.colorbar(scatter1, ax=axes[0], label='Slope (degrees)')
+    terrain_data['Energy Production (W)'] = energy_production
+    return terrain_data
 
-# Plot 2: Terrain Aspect
-scatter2 = axes[1].scatter(
-    terrain_data['longitude'], 
-    terrain_data['latitude'], 
-    c=terrain_data['aspect'],
-    cmap='hsv',  # Circular colormap for directional data
-    alpha=0.7,
-    vmin=0,
-    vmax=360
-)
-axes[1].set_title('Terrain Aspect')
-axes[1].set_xlabel('Longitude')
-axes[1].set_ylabel('Latitude')
-cbar2 = plt.colorbar(scatter2, ax=axes[1], label='Aspect (degrees)')
-cbar2.ax.set_yticks([0, 90, 180, 270, 360])
-cbar2.ax.set_yticklabels(['N (0°)', 'E (90°)', 'S (180°)', 'W (270°)', 'N (360°)'])
 
-# Plot 3: Solar Energy Production
-scatter3 = axes[2].scatter(
-    terrain_data['longitude'], 
-    terrain_data['latitude'], 
-    c=terrain_data['Energy Production (W)'],
-    cmap='hot', 
-    alpha=0.7
-)
-axes[2].set_title('Solar Energy Production')
-axes[2].set_xlabel('Longitude')
-axes[2].set_ylabel('Latitude')
-cbar3 = plt.colorbar(scatter3, ax=axes[2], label='Energy Production (W)')
 
-plt.tight_layout()
-plt.suptitle('Terrain Analysis and Solar Energy Production Potential', fontsize=16, y=1.05)
-plt.savefig('terrain_solar_analysis.png', dpi=300, bbox_inches='tight')
-plt.show()
 
-# Create a new visualization showing how flat terrain ignores aspect
-plt.figure(figsize=(12, 8))
+if __name__ == '__main__':
+    min_lat=-26
+    max_lat=-25
+    min_lon=-71
+    max_lon=-70
 
-# Create a grid of slope and aspect values
-slopes = np.linspace(0, 45, 10)  # Different slopes from flat to 45 degrees
-aspects = np.linspace(0, 359, 36)  # Different aspects all around
-slope_grid, aspect_grid = np.meshgrid(slopes, aspects)
+    terrain_data = get_energy_production_df(min_lat, max_lat, min_lon, max_lon)
 
-# Calculate energy for each combination
-energy_grid = np.zeros_like(slope_grid)
-for i in range(len(aspects)):
-    for j in range(len(slopes)):
-        energy_grid[i, j] = calculate_solar_energy_production(
-            1000, slopes[j], aspects[i], mean_latitude
-        )
+    # Create a figure with 3 subplots (1 row, 3 columns)
+    fig, axes = plt.subplots(1, 3, figsize=(18, 6))
 
-# Convert to relative values (percentage of maximum)
-energy_rel = energy_grid / np.max(energy_grid) * 100
+    # Plot 1: Terrain Slope
+    scatter1 = axes[0].scatter(
+        terrain_data['longitude'], 
+        terrain_data['latitude'], 
+        c=terrain_data['slope'],
+        cmap='viridis', 
+        alpha=0.7,
+        vmin=0,
+        vmax=90
+    )
+    axes[0].set_title('Terrain Slope')
+    axes[0].set_xlabel('Longitude')
+    axes[0].set_ylabel('Latitude')
+    cbar1 = plt.colorbar(scatter1, ax=axes[0], label='Slope (degrees)')
 
-# Create heatmap
-plt.figure(figsize=(12, 10))
-im = plt.imshow(energy_rel, origin='lower', aspect='auto', cmap='hot',
-               extent=[0, 45, 0, 360])
-plt.colorbar(im, label='Relative Energy Potential (%)')
-plt.xlabel('Slope (degrees)')
-plt.ylabel('Aspect (degrees)')
-plt.title('Solar Energy Potential by Slope and Aspect')
-plt.yticks([0, 45, 90, 135, 180, 225, 270, 315, 360], 
-           ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW', 'N'])
-plt.grid(False)
-plt.savefig('slope_aspect_energy_matrix.png', dpi=300)
-plt.show()
+    # Plot 2: Terrain Aspect
+    scatter2 = axes[1].scatter(
+        terrain_data['longitude'], 
+        terrain_data['latitude'], 
+        c=terrain_data['aspect'],
+        cmap='hsv',  # Circular colormap for directional data
+        alpha=0.7,
+        vmin=0,
+        vmax=360
+    )
+    axes[1].set_title('Terrain Aspect')
+    axes[1].set_xlabel('Longitude')
+    axes[1].set_ylabel('Latitude')
+    cbar2 = plt.colorbar(scatter2, ax=axes[1], label='Aspect (degrees)')
+    cbar2.ax.set_yticks([0, 90, 180, 270, 360])
+    cbar2.ax.set_yticklabels(['N (0°)', 'E (90°)', 'S (180°)', 'W (270°)', 'N (360°)'])
 
-# Also plot energy vs aspect for different slopes to show the effect
-plt.figure(figsize=(10, 6))
+    # Plot 3: Solar Energy Production
+    scatter3 = axes[2].scatter(
+        terrain_data['longitude'], 
+        terrain_data['latitude'], 
+        c=terrain_data['Energy Production (W)'],
+        cmap='hot', 
+        alpha=0.7
+    )
+    axes[2].set_title('Solar Energy Production')
+    axes[2].set_xlabel('Longitude')
+    axes[2].set_ylabel('Latitude')
+    cbar3 = plt.colorbar(scatter3, ax=axes[2], label='Energy Production (W)')
 
-selected_slopes = [0, 5, 15, 30]
-for slp in selected_slopes:
-    # Find the closest index in our slopes array
-    slp_idx = np.abs(slopes - slp).argmin()
-    energy_curve = energy_rel[:, slp_idx]
-    plt.plot(aspects, energy_curve, label=f'Slope = {slp}°')
+    plt.tight_layout()
+    plt.suptitle('Terrain Analysis and Solar Energy Production Potential', fontsize=16, y=1.05)
+    plt.savefig('terrain_solar_analysis_example.png', dpi=300, bbox_inches='tight')
+    plt.show()
 
-plt.axvline(x=0, color='blue', linestyle='--', alpha=0.3)
-plt.axvline(x=90, color='green', linestyle='--', alpha=0.3)
-plt.axvline(x=180, color='red', linestyle='--', alpha=0.3)
-plt.axvline(x=270, color='purple', linestyle='--', alpha=0.3)
-plt.xlabel('Aspect (degrees)')
-plt.ylabel('Relative Energy Potential (%)')
-plt.title('Effect of Slope and Aspect on Solar Energy Production')
-plt.xlim(0, 359)
-plt.xticks([0, 45, 90, 135, 180, 225, 270, 315, 359], 
-           ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW', 'N'])
-plt.legend()
-plt.grid(True)
-plt.savefig('slope_aspect_curves.png', dpi=300)
-plt.show()
+    # Create a new visualization showing how flat terrain ignores aspect
+    plt.figure(figsize=(12, 8))
+
+    # Create a grid of slope and aspect values
+    slopes = np.linspace(0, 45, 10)  # Different slopes from flat to 45 degrees
+    aspects = np.linspace(0, 359, 36)  # Different aspects all around
+    slope_grid, aspect_grid = np.meshgrid(slopes, aspects)
+
+    mean_latitude = -45
+    # Calculate energy for each combination
+    energy_grid = np.zeros_like(slope_grid)
+    for i in range(len(aspects)):
+        for j in range(len(slopes)):
+            energy_grid[i, j] = _calculate_solar_energy_production(
+                1000, slopes[j], aspects[i], mean_latitude
+            )
+
+    # Convert to relative values (percentage of maximum)
+    energy_rel = energy_grid / np.max(energy_grid) * 100
+
+    # Create heatmap
+    plt.figure(figsize=(12, 10))
+    im = plt.imshow(energy_rel, origin='lower', aspect='auto', cmap='hot',
+                extent=[0, 45, 0, 360])
+    plt.colorbar(im, label='Relative Energy Potential (%)')
+    plt.xlabel('Slope (degrees)')
+    plt.ylabel('Aspect (degrees)')
+    plt.title('Solar Energy Potential by Slope and Aspect')
+    plt.yticks([0, 45, 90, 135, 180, 225, 270, 315, 360], 
+            ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW', 'N'])
+    plt.grid(False)
+    plt.savefig('slope_aspect_energy_matrix.png', dpi=300)
+    plt.show()
+
+    # Also plot energy vs aspect for different slopes to show the effect
+    plt.figure(figsize=(10, 6))
+
+    selected_slopes = [0, 5, 15, 30]
+    for slp in selected_slopes:
+        # Find the closest index in our slopes array
+        slp_idx = np.abs(slopes - slp).argmin()
+        energy_curve = energy_rel[:, slp_idx]
+        plt.plot(aspects, energy_curve, label=f'Slope = {slp}°')
+
+    plt.axvline(x=0, color='blue', linestyle='--', alpha=0.3)
+    plt.axvline(x=90, color='green', linestyle='--', alpha=0.3)
+    plt.axvline(x=180, color='red', linestyle='--', alpha=0.3)
+    plt.axvline(x=270, color='purple', linestyle='--', alpha=0.3)
+    plt.xlabel('Aspect (degrees)')
+    plt.ylabel('Relative Energy Potential (%)')
+    plt.title('Effect of Slope and Aspect on Solar Energy Production')
+    plt.xlim(0, 359)
+    plt.xticks([0, 45, 90, 135, 180, 225, 270, 315, 359], 
+            ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW', 'N'])
+    plt.legend()
+    plt.grid(True)
+    plt.savefig('slope_aspect_curves.png', dpi=300)
+    plt.show()
