@@ -8,6 +8,11 @@ from folium.plugins import HeatMap
 import openai
 import json
 import time
+import speech_recognition as sr
+from io import BytesIO
+import base64
+from PIL import Image
+import io
 
 # Load configuration from settings.json
 try:
@@ -453,6 +458,52 @@ def generate_heatmap_data_in_radius(center_lat, center_lon, radius_km=2, num_poi
     
     return heat_data
 
+def chat_with_azure_openai_image(prompt, image_data=None):
+    # Create Azure OpenAI client
+    client = openai.AzureOpenAI(
+        api_key=settings['azure_openai']['api_key'],
+        api_version=settings['azure_openai']['api_version'],
+        azure_endpoint=settings['azure_openai']['azure_endpoint']
+    )
+    
+    # Prepare the messages
+    messages = [
+        {"role": "system", "content": "Eres un experto en instalación de placas solares."},
+    ]
+    
+    # Add image content if provided
+    if image_data:
+        # Convert image to base64
+        base64_image = base64.b64encode(image_data).decode('utf-8')
+        
+        # Add image content to messages
+        messages.append({
+            "role": "user",
+            "content": [
+                {"type": "text", "text": prompt},
+                {
+                    "type": "image_url",
+                    "image_url": {
+                        "url": f"data:image/jpeg;base64,{base64_image}"
+                    }
+                }
+            ]
+        })
+    else:
+        # Text-only prompt
+        messages.append({"role": "user", "content": prompt})
+    
+    # Make the API call
+    response = client.chat.completions.create(
+        model=settings['azure_openai']['deployment_name'],
+        messages=messages,
+        temperature=0.7,
+        max_tokens=16384
+    )
+
+    return response.choices[0].message.content
+
+
 # Initialize session state variables
 if 'menu' not in st.session_state:
     st.session_state.menu = "Mapa Interactivo"
@@ -613,12 +664,18 @@ with col_content:
     # Modern menu design with icons
     st.markdown("<div class='sidebar-menu'>", unsafe_allow_html=True)
     
+    # Update your menu options to include Apartado 2
     menu_options = {
-        "Mapa Interactivo": "🗺️"
-        # "Apartado 2": "🧮",
-        # "Apartado 3": "📚"
+        "Mapa Interactivo": "🗺️",
+        "Apartado 2": "📷"
     }
-    
+
+    # Update your radio button to include Apartado 2
+    menu = st.radio("", ["Mapa Interactivo", "Apartado 2"],
+                index=["Mapa Interactivo", "Apartado 2"].index(st.session_state.menu),
+                label_visibility="collapsed",
+                key="menu_selection")
+
     for option, icon in menu_options.items():
         active_class = "active" if st.session_state.menu == option else ""
         if st.markdown(f"""
@@ -642,10 +699,19 @@ with col_content:
     #                label_visibility="collapsed",
     #                key="menu_selection")
 
-    menu =st.radio("", ["Mapa Interactivo"],
-                   index= ["Mapa Interactivo"].index(st.session_state.menu),
-                     label_visibility="collapsed",
-                        key="menu_selection")
+        # First, make sure the menu options list contains all possibilities
+    menu_options_list = ["Mapa Interactivo", "Apartado 2"]
+
+    # Then, check if the current menu selection is in this list; if not, default to the first option
+    if st.session_state.menu not in menu_options_list:
+        st.session_state.menu = menu_options_list[0]
+
+    # Now use the radio button with the correct index
+    menu = st.radio("", menu_options_list,
+                index=menu_options_list.index(st.session_state.menu),
+                label_visibility="collapsed",
+                key="menu_selection_alternate")
+
     
     # Update the menu state if changed manually
     if menu != st.session_state.menu:
@@ -653,6 +719,7 @@ with col_content:
 
     # Apartado 1: Mapa Interactivo
     if st.session_state.menu == "Mapa Interactivo":
+
         st.markdown("<h2 class='sub-header'>Mapa Interactivo de Latinoamérica</h2>", unsafe_allow_html=True)
         
         # Create a card container for the map and details
@@ -875,5 +942,192 @@ with col_content:
         else:
             st.info("Selecciona una ubicación en el mapa principal para generar el análisis de radiación solar en el radio de 2 km.")
         st.markdown("</div>", unsafe_allow_html=True)  # End of card
-
     
+    if st.session_state.menu == "Apartado 2":
+        st.markdown("<h2 class='sub-header'>Análisis Visual de Placas Solares</h2>", unsafe_allow_html=True)
+        
+        # Create a card container for the image analysis
+        st.markdown("<div class='card'>", unsafe_allow_html=True)
+        
+        st.markdown("""
+        <div style="text-align: center; margin-bottom: 20px;">
+            <div style="font-size: 2rem; color: #1E88E5; margin-bottom: 0.5rem;">📷 + 🗣️</div>
+            <p>Sube o captura una imagen de paneles solares y describe tu consulta por voz o texto</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Layout with two columns for better organization
+        col1, col2 = st.columns([3, 2])
+        
+        with col1:
+            # Image upload section
+            st.subheader("1. Sube o captura una imagen")
+            image_source = st.radio(
+                "Fuente de imagen:",
+                ["Subir archivo", "Usar cámara"],
+                horizontal=True
+            )
+            
+            image_data = None
+            image = None
+            
+            if image_source == "Subir archivo":
+                image_file = st.file_uploader("Selecciona una imagen", type=["jpg", "jpeg", "png"])
+                
+                if image_file is not None:
+                    image = Image.open(image_file)
+                    st.image(image, caption="Imagen cargada", use_column_width=True)
+                    
+                    img_byte_arr = io.BytesIO()
+                    image.save(img_byte_arr, format='JPEG')
+                    image_data = img_byte_arr.getvalue()
+                    
+                    # Store in session state
+                    st.session_state["image_data"] = image_data
+                    st.session_state["image"] = image
+            else:
+                camera_image = st.camera_input("Toma una foto")
+                
+                if camera_image is not None:
+                    image = Image.open(camera_image)
+                    
+                    img_byte_arr = io.BytesIO()
+                    image.save(img_byte_arr, format='JPEG')
+                    image_data = img_byte_arr.getvalue()
+                    
+                    # Store in session state
+                    st.session_state["image_data"] = image_data
+                    st.session_state["image"] = image
+        
+        with col2:
+            # Description input section
+            st.subheader("2. Describe tu consulta")
+            
+            description_method = st.radio(
+                "Método de descripción:",
+                ["Usar voz", "Escribir texto"],
+                horizontal=True
+            )
+            
+            if description_method == "Usar voz":
+                if st.button("🎤 Grabar consulta (10s)", use_container_width=True):
+                    with st.spinner("Grabando durante 10 segundos..."):
+                        try:
+                            r = sr.Recognizer()
+                            
+                            with sr.Microphone() as source:
+                                st.write("Ajustando al ruido ambiente...")
+                                r.adjust_for_ambient_noise(source)
+                                st.write("¡Grabando! Habla ahora...")
+                                audio = r.listen(source, timeout=10)
+                                st.success("¡Grabación completada!")
+                                
+                                st.session_state["voice_description_audio"] = audio
+                                
+                                # Try to transcribe immediately
+                                try:
+                                    text = r.recognize_google(audio, language="es-ES")
+                                    st.session_state["description"] = text
+                                    st.success(f"Transcripción: {text}")
+                                except Exception as e:
+                                    st.warning("No se pudo transcribir automáticamente. Se intentará al analizar.")
+                        except Exception as e:
+                            st.error(f"Error al grabar: {e}")
+            else:
+                text_input = st.text_area(
+                    "Escribe tu consulta:",
+                    placeholder="Ej: Analiza estos paneles solares y dime si hay problemas de instalación",
+                    value="",
+                    height=100
+                )
+                if text_input:
+                    st.session_state["description"] = text_input
+        
+        # Submit button - below both columns
+        st.markdown("<div style='margin-top: 20px;'>", unsafe_allow_html=True)
+        if st.button("📤 Analizar", type="primary", use_container_width=True):
+            if "image_data" not in st.session_state or st.session_state["image_data"] is None:
+                st.warning("⚠️ Por favor, sube o captura una imagen primero.")
+            else:
+                # Get image data
+                image_data = st.session_state["image_data"]
+                image = st.session_state["image"]   
+                
+                # Get description
+                description = None
+                
+                # Try to get from stored transcription
+                if "description" in st.session_state:
+                    description = st.session_state["description"]
+                
+                # If no stored description but we have audio, try to transcribe
+                elif "voice_description_audio" in st.session_state:
+                    r = sr.Recognizer()
+                    try:
+                        with st.spinner("Transcribiendo audio..."):
+                            audio_data = st.session_state["voice_description_audio"]
+                            description = r.recognize_google(audio_data, language="es-ES")
+                            st.success(f"Transcripción: {description}")
+                    except Exception as e:
+                        st.error(f"Error al transcribir: {e}")
+                        description = "Analiza esta imagen de paneles solares e identifica posibles problemas o mejoras."
+                
+                # Default description
+                if not description:
+                    description = "Analiza esta imagen de paneles solares e identifica posibles problemas o mejoras."
+                
+                # Display loading spinner and analysis
+                with st.spinner("Analizando imagen y consulta..."):
+                    response = chat_with_azure_openai_image(description, image_data)
+                
+                # Display result in a nice card
+                st.markdown("""
+                <div style="background-color: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); margin-top: 20px;">
+                    <h3 style="color: #1E88E5; margin-bottom: 15px; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px;">Resultado del Análisis</h3>
+                """, unsafe_allow_html=True)
+                
+                # Display the analyzed image
+                st.image(image, caption="Imagen analizada", width=400)
+                
+                # Display the query
+                st.markdown(f"""
+                <div style="background-color: #E3F2FD; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                    <p style="font-weight: 600; margin-bottom: 5px;">Tu consulta:</p>
+                    <p style="margin: 0;">{description}</p>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Display the response
+                st.markdown(f"""
+                <div style="background-color: #F5F5F5; padding: 15px; border-radius: 8px;">
+                    <p style="font-weight: 600; margin-bottom: 5px;">Análisis:</p>
+                    <p style="margin: 0;">{response}</p>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                st.markdown("</div>", unsafe_allow_html=True)
+                
+                # Clear session variables for next interaction
+                if "voice_description_audio" in st.session_state:
+                    del st.session_state["voice_description_audio"]
+                if "description" in st.session_state:
+                    del st.session_state["description"]
+        
+        st.markdown("</div>", unsafe_allow_html=True)
+        
+        # Add information about the feature
+        st.markdown("<div class='card'>", unsafe_allow_html=True)
+        st.markdown("""
+        <h3 style="color: #0D47A1; margin-bottom: 15px;">Sobre esta funcionalidad</h3>
+        <p>Esta herramienta utiliza inteligencia artificial para analizar imágenes de instalaciones solares y proporcionar un diagnóstico experto.</p>
+        <p>Puedes utilizar esta función para:</p>
+        <ul>
+            <li>Identificar problemas en la instalación de paneles solares</li>
+            <li>Detectar posibles mejoras en la eficiencia</li>
+            <li>Evaluar la orientación y colocación de los paneles</li>
+            <li>Identificar daños o deterioro en los equipos</li>
+            <li>Recibir recomendaciones para optimizar tu instalación</li>
+        </ul>
+        <p>Para obtener mejores resultados, intenta proporcionar imágenes claras y bien iluminadas de tus paneles solares.</p>
+        """, unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
