@@ -711,13 +711,13 @@ with col_content:
 
     if st.session_state.menu == "Información":
         # plot a png file
-        image = Image.open('Interpolated-Solar-irradiance-LatAm.png')
+        image = Image.open('images/Interpolated-Solar-irradiance-LatAm.png')
         # Display the image with controlled width instead of resizing
         # Set a specific width in pixels to control the display size
         display_width = 600  # Adjust this value as needed
         st.image(image, caption='Panel Solar', width=display_width)
         
-        image2 = Image.open('LatAm-sun-production.png')
+        image2 = Image.open('images/LatAm-sun-production.png')
         st.image(image2, caption='Producción de energía solar', use_container_width=True)
         
         show_information()
