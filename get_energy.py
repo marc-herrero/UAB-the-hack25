@@ -98,9 +98,9 @@ def create_3_plots(terrain_df):
 
     # Plot 1: Terrain Slope
     scatter1 = axes[0].scatter(
-        terrain_data['longitude'], 
-        terrain_data['latitude'], 
-        c=terrain_data['slope'],
+        terrain_df['longitude'], 
+        terrain_df['latitude'], 
+        c=terrain_df['slope'],
         cmap='viridis', 
         alpha=0.7,
         vmin=0,
@@ -113,9 +113,9 @@ def create_3_plots(terrain_df):
 
     # Plot 2: Terrain Aspect
     scatter2 = axes[1].scatter(
-        terrain_data['longitude'], 
-        terrain_data['latitude'], 
-        c=terrain_data['aspect'],
+        terrain_df['longitude'], 
+        terrain_df['latitude'], 
+        c=terrain_df['aspect'],
         cmap='hsv',  # Circular colormap for directional data
         alpha=0.7,
         vmin=0,
@@ -130,9 +130,9 @@ def create_3_plots(terrain_df):
 
     # Plot 3: Solar Energy Production
     scatter3 = axes[2].scatter(
-        terrain_data['longitude'], 
-        terrain_data['latitude'], 
-        c=terrain_data['Energy Production (W)'],
+        terrain_df['longitude'], 
+        terrain_df['latitude'], 
+        c=terrain_df['Energy Production (W)'],
         cmap='hot', 
         alpha=0.7
     )
@@ -147,18 +147,7 @@ def create_3_plots(terrain_df):
     plt.show()
 
 
-
-
-
-if __name__ == '__main__':
-    min_lat=-26
-    max_lat=-25
-    min_lon=-71
-    max_lon=-70
-
-    terrain_data = get_energy_production_df(min_lat, max_lat, min_lon, max_lon)
-    create_3_plots(terrain_data)
-
+def create_2_plots_indicative() -> None:
     # Create a new visualization showing how flat terrain ignores aspect
     plt.figure(figsize=(12, 8))
 
@@ -217,3 +206,16 @@ if __name__ == '__main__':
     plt.grid(True)
     plt.savefig('slope_aspect_curves.png', dpi=300)
     plt.show()
+
+
+
+
+if __name__ == '__main__':
+    min_lat=-26
+    max_lat=-25
+    min_lon=-71
+    max_lon=-70
+
+    terrain_df = get_energy_production_df(min_lat, max_lat, min_lon, max_lon)
+    create_3_plots(terrain_df)
+    create_2_plots_indicative()
