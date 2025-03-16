@@ -69,7 +69,7 @@ def _calculate_solar_energy_production(irradiance, slope, aspect, latitude, pane
     return energy_production
 
 
-raw_irradiance_data = pd.read_csv('irradiance_data_full_res2.csv')
+raw_irradiance_data = pd.read_csv('data/irradiance_data_full_res2.csv')
 
 def get_energy_production_df(min_lat=-26, max_lat=-25, min_lon=-71, max_lon=-70, resolution=30) -> pd.DataFrame:
     terrain_data = get_terrain_data(min_lat, max_lat, min_lon, max_lon, resolution=resolution)
@@ -271,4 +271,4 @@ if __name__ == '__main__':
 
     terrain_df = get_energy_production_df(min_lat, max_lat, min_lon, max_lon)
     create_3_plots(terrain_df)
-    create_2_plots_indicative()
+    create_information_plots()

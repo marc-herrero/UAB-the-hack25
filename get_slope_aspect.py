@@ -107,5 +107,5 @@ if __name__ == "__main__":
     print(terrain_df.head())
     
     # Save to CSV
-    terrain_df.to_csv('terrain_data.csv', index=False)
-    print("Data saved to 'terrain_data.csv'")
+    terrain_df.to_csv('data/terrain_data.csv', index=False)
+    print("Data saved to 'data/terrain_data.csv'")
