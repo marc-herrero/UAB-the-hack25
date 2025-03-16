@@ -514,13 +514,13 @@ if "messages" not in st.session_state:
 if 'selected_location' not in st.session_state:
     st.session_state.selected_location = None
 
-# Initialize session state variables
-if 'menu' not in st.session_state:
-    st.session_state.menu = "Mapa Interactivo"
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-if 'selected_location' not in st.session_state:
-    st.session_state.selected_location = None
+# # Initialize session state variables
+# if 'menu' not in st.session_state:
+#     st.session_state.menu = "Mapa Interactivo"
+# if "messages" not in st.session_state:
+#     st.session_state.messages = []
+# if 'selected_location' not in st.session_state:
+#     st.session_state.selected_location = None
 
 # Apply custom CSS for fixed chat positioning
 st.markdown("""
@@ -660,72 +660,28 @@ with col_chat:
         # Force rerun to update the UI
         st.rerun()
 
+if "menu" not in st.session_state:
+    st.session_state.menu = "Mapa Interactivo"
+
+tabs = {
+    "🗺️ Mapa": "Mapa Interactivo",
+    "🤖 Chatbot": "Chatbot",
+    "🌍 Comunidad": "Community Hub"
+}
+
 with col_content:
-    # Modern menu design with icons
-    st.markdown("<div class='sidebar-menu'>", unsafe_allow_html=True)
-    
-    # Update menu options to include Community Hub
-    menu_options = {
-        "Mapa Interactivo": "🗺️",
-        "Apartado 2": "📷",
-        "Community Hub": "🌐"
-    }
+    st.markdown("<style>div.stButton > button { width: 100%; }</style>", unsafe_allow_html=True)
 
-    # Initialize if not in session state
-    if 'menu' not in st.session_state:
-        st.session_state.menu = "Mapa Interactivo"
+    with st.container():
+        cols = st.columns(len(tabs))
 
-    # Update radio button to include Community Hub
-    menu = st.radio("", 
-                    ["Mapa Interactivo", "Apartado 2", "Community Hub"],
-                    index=["Mapa Interactivo", "Apartado 2", "Community Hub"].index(st.session_state.menu),
-                    label_visibility="collapsed",
-                    key="menu_selection")
+        for i, (emoji_tab, tab) in enumerate(tabs.items()):
+            if cols[i].button(emoji_tab, key=f"tab_{tab}"):
+                if st.session_state.menu != tab:  # Avoid unnecessary reruns
+                    st.session_state.menu = tab
+                    st.rerun()
 
-    # Update session state when radio changes
-    st.session_state.menu = menu
-    
-    # Custom menu UI
-    for option, icon in menu_options.items():
-        active_class = "active" if st.session_state.menu == option else ""
-        if st.markdown(f"""
-        <div class="menu-option {active_class}" onclick="
-            window.parent.postMessage({{
-                type: 'streamlit:setComponentValue',
-                value: '{option}'
-            }}, '*')
-        ">
-            <span style="font-size: 1.5rem;">{icon}</span>
-            <span>{option}</span>
-        </div>
-        """, unsafe_allow_html=True):
-            st.session_state.menu = option
-    
-    st.markdown("</div>", unsafe_allow_html=True)
-    
-    # Hidden radio button that's controlled by the custom menu
-    # menu = st.radio("", ["Mapa Interactivo", "Apartado 2", "Apartado 3"], 
-    #                index=["Mapa Interactivo", "Apartado 2", "Apartado 3"].index(st.session_state.menu),
-    #                label_visibility="collapsed",
-    #                key="menu_selection")
-
-        # First, make sure the menu options list contains all possibilities
-    menu_options_list = ["Mapa Interactivo", "Apartado 2"]
-
-    # Then, check if the current menu selection is in this list; if not, default to the first option
-    if st.session_state.menu not in menu_options_list:
-        st.session_state.menu = menu_options_list[0]
-
-    # # Now use the radio button with the correct index
-    # menu = st.radio("", menu_options_list,
-    #             index=menu_options_list.index(st.session_state.menu),
-    #             label_visibility="collapsed",
-    #             key="menu_selection_alternate")
-
-    
-    # Update the menu state if changed manually
-    if menu != st.session_state.menu:
-        st.session_state.menu = menu
+    st.markdown(f"## {st.session_state.menu}")
 
     # Apartado 1: Mapa Interactivo
     if st.session_state.menu == "Mapa Interactivo":
@@ -953,7 +909,7 @@ with col_content:
             st.info("Selecciona una ubicación en el mapa principal para generar el análisis de radiación solar en el radio de 2 km.")
         st.markdown("</div>", unsafe_allow_html=True)  # End of card
     
-    if st.session_state.menu == "Apartado 2":
+    if st.session_state.menu == "Chatbot":
         st.markdown("<h2 class='sub-header'>Análisis Visual de Placas Solares</h2>", unsafe_allow_html=True)
         
         # Create a card container for the image analysis
