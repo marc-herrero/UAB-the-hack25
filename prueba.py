@@ -1143,282 +1143,271 @@ with col_content:
         st.markdown("</div>", unsafe_allow_html=True)
 
     if st.session_state.menu == "Community Hub":
-        st.markdown('<h1 class="main-header">Community Hub</h1>', unsafe_allow_html=True)
+        st.markdown('<h1 class="main-header">Centro Comunitario</h1>', unsafe_allow_html=True)
         
-        tab1, tab2, tab3 = st.tabs(["Knowledge Sharing", "Workforce Marketplace", "Community Challenges"])
+        tab1, tab2, tab3 = st.tabs(["Intercambio de Conocimiento", "Mercado Laboral", "Desafíos Comunitarios"])
         
         with tab1:
-            st.markdown('<h2 class="sub-header">Knowledge Sharing Hub</h2>', unsafe_allow_html=True)
+            st.markdown('<h2 class="sub-header">Centro de Intercambio de Conocimiento</h2>', unsafe_allow_html=True)
             
-            # AI-Moderated Q&A Forum
+            # Foro de Preguntas y Respuestas moderado por IA
             with st.container():
                 st.markdown('<div class="card">', unsafe_allow_html=True)
-                st.subheader("AI-Moderated Q&A Forum")
+                st.subheader("Foro de Preguntas y Respuestas moderado por IA")
                 
-                # Sample questions or new question input
-                new_question = st.text_area("Ask a technical question:", 
-                                        placeholder="E.g., How to fix a solar inverter?")
+                # Ejemplos de preguntas o ingreso de nueva pregunta
+                new_question = st.text_area("Haz una pregunta técnica:", 
+                                        placeholder="Ej., ¿Cómo reparar un inversor solar?")
                 
-                if st.button("Submit Question"):
-                    st.success("Question submitted! Our AI is generating initial answers...")
-                    # Here you would integrate with Azure OpenAI
+                if st.button("Enviar Pregunta"):
+                    st.success("¡Pregunta enviada! Nuestra IA está generando respuestas iniciales...")
+                    # Aquí integrarías con Azure OpenAI
                 
-                # Sample Q&A display
-                st.markdown("### Recent Questions")
-                with st.expander("How to troubleshoot voltage issues in my off-grid system?"):
+                # Muestra de preguntas y respuestas
+                st.markdown("### Preguntas Recientes")
+                with st.expander("¿Cómo solucionar problemas de voltaje en mi sistema autónomo?"):
                     st.markdown("""
-                    **AI Response**: Check battery connections, verify controller settings, and ensure proper grounding.
+                    **Respuesta IA**: Revisa las conexiones de la batería, verifica la configuración del controlador y asegúrate de tener una correcta conexión a tierra.
                     
-                    **Community Answers**:
-                    - **Maria (Solar Expert)**: I'd also recommend checking for corroded terminals. [Upvote: 12]
-                    - **John**: In my experience, loose connections were the main cause. [Upvote: 5]
+                    **Respuestas de la Comunidad**:
+                    - **María (Experta en Solar)**: También recomendaría revisar si hay terminales corroídos. [Votos: 12]
+                    - **Juan**: En mi experiencia, las conexiones sueltas fueron la causa principal. [Votos: 5]
                     """)
                 
                 st.markdown("</div>", unsafe_allow_html=True)
             
-            # Crowdsourced Resource Library
+            # Biblioteca de recursos colaborativa
             with st.container():
                 st.markdown('<div class="card">', unsafe_allow_html=True)
-                st.subheader("Resource Library")
+                st.subheader("Biblioteca de Recursos")
                 
-                # Upload functionality
-                uploaded_file = st.file_uploader("Upload a resource (guide, template, video)", type=["pdf", "docx", "mp4"])
-                resource_type = st.selectbox("Resource type", ["Repair Guide", "Installation Manual", "Budget Template", "Tutorial Video"])
-                tags = st.multiselect("Tags", ["Solar", "Wind", "Hydro", "Batteries", "Wiring", "DIY", "Professional"])
+                # Funcionalidad de carga
+                uploaded_file = st.file_uploader("Sube un recurso (guía, plantilla, video)", type=["pdf", "docx", "mp4"], key="resource_uploader")
+                resource_type = st.selectbox("Tipo de recurso", ["Guía de Reparación", "Manual de Instalación", "Plantilla de Presupuesto", "Video Tutorial"], key="resource_type")
+                tags = st.multiselect("Etiquetas", ["Solar", "Eólico", "Hidro", "Baterías", "Cableado", "Hazlo Tú Mismo", "Profesional"], key="resource_tags")
                 
-                if st.button("Add to Library"):
+                if st.button("Añadir a la Biblioteca", key="add_to_library"):
                     if uploaded_file is not None:
-                        st.success("Resource added to the library and automatically tagged!")
+                        st.success("¡Recurso añadido a la biblioteca y etiquetado automáticamente!")
                 
-                # Sample resources
-                st.markdown("### Popular Resources")
+                # Recursos de ejemplo
+                st.markdown("### Recursos Populares")
                 col1, col2 = st.columns(2)
                 
                 with col1:
                     st.markdown("""
-                    📄 **DIY Solar Installation Guide**  
-                    Tags: Solar, DIY, Installation  
-                    Uploaded by: Carlos  
-                    Downloads: 328
+                    📄 **Guía de Instalación Solar DIY**  
+                    Etiquetas: Solar, DIY, Instalación  
+                    Subido por: Carlos  
+                    Descargas: 328
                     """)
                 
                 with col2:
                     st.markdown("""
-                    🎬 **Battery Bank Maintenance Tutorial**  
-                    Tags: Batteries, Maintenance, DIY  
-                    Uploaded by: Maria  
-                    Views: 573
+                    🎬 **Tutorial de Mantenimiento de Banco de Baterías**  
+                    Etiquetas: Baterías, Mantenimiento, DIY  
+                    Subido por: María  
+                    Visualizaciones: 573
                     """)
                 
                 st.markdown("</div>", unsafe_allow_html=True)
             
-            # Case Study Map
+            # Mapa de Casos de Estudio
             with st.container():
                 st.markdown('<div class="card">', unsafe_allow_html=True)
-                st.subheader("Community Projects Map")
+                st.subheader("Mapa de Proyectos Comunitarios")
                 
                 st.markdown('<div class="center-map">', unsafe_allow_html=True)
-                # Here you would integrate a map (folium, pydeck, etc.)
-                st.image("https://via.placeholder.com/800x400?text=Interactive+Map+of+Projects", use_column_width=True)
+                # Aquí integrarías un mapa (folium, pydeck, etc.)
+                st.image("https://via.placeholder.com/800x400?text=Mapa+Interactivo+de+Proyectos", use_column_width=True)
                 st.markdown('</div>', unsafe_allow_html=True)
                 
-                # Add project form
-                st.subheader("Add Your Project")
-                project_name = st.text_input("Project Name")
-                project_type = st.selectbox("Project Type", ["Solar Array", "Wind Turbine", "Micro-Hydro", "Battery Bank", "Hybrid System"])
-                location = st.text_input("Location")
-                description = st.text_area("Project Description")
+                # Formulario para añadir proyecto
+                st.subheader("Añade Tu Proyecto")
+                project_name = st.text_input("Nombre del Proyecto", key="project_name")
+                project_type = st.selectbox("Tipo de Proyecto", ["Array Solar", "Turbina Eólica", "Micro-Hidro", "Banco de Baterías", "Sistema Híbrido"], key="project_type")
+                location = st.text_input("Ubicación", key="project_location")
+                description = st.text_area("Descripción del Proyecto", key="project_description")
                 
                 col1, col2 = st.columns(2)
                 with col1:
-                    cost = st.number_input("Total Cost ($USD)", min_value=0)
+                    cost = st.number_input("Costo Total ($USD)", min_value=0, key="project_cost")
                 with col2:
-                    capacity = st.number_input("System Capacity (kW)", min_value=0.0, step=0.1)
+                    capacity = st.number_input("Capacidad del Sistema (kW)", min_value=0.0, step=0.1, key="project_capacity")
                 
-                project_pic = st.file_uploader("Upload Project Photo", type=["jpg", "png"])
+                project_pic = st.file_uploader("Subir Foto del Proyecto", type=["jpg", "png"], key="project_pic")
                 
-                if st.button("Submit Project"):
-                    st.success("Project added to the community map!")
+                if st.button("Enviar Proyecto", key="submit_project"):
+                    st.success("¡Proyecto añadido al mapa comunitario!")
                 
                 st.markdown("</div>", unsafe_allow_html=True)
         
         with tab2:
-            st.markdown('<h2 class="sub-header">Workforce & Services Marketplace</h2>', unsafe_allow_html=True)
+            st.markdown('<h2 class="sub-header">Mercado de Fuerza Laboral y Servicios</h2>', unsafe_allow_html=True)
             
-            # Job Board
+            # Tablón de Empleo
             with st.container():
                 st.markdown('<div class="card">', unsafe_allow_html=True)
-                st.subheader("Job Board")
+                st.subheader("Tablón de Empleo")
                 
-                listing_type = st.radio("I want to:", ["Offer my services", "Find services"])
+                listing_type = st.radio("Quiero:", ["Ofrecer mis servicios", "Encontrar servicios"], key="listing_type")
                 
-                if listing_type == "Offer my services":
-                    st.text_input("Your Name")
-                    st.text_input("Skills/Services")
-                    st.number_input("Years of Experience", min_value=0)
-                    st.text_input("Location")
-                    st.slider("Travel Radius (km)", 0, 200, 50)
-                    st.text_area("Description of your services")
-                    st.file_uploader("Certification Documents (optional)", accept_multiple_files=True)
+                if listing_type == "Ofrecer mis servicios":
+                    st.text_input("Tu Nombre", key="provider_name")
+                    st.text_input("Habilidades/Servicios", key="provider_skills")
+                    st.number_input("Años de Experiencia", min_value=0, key="provider_experience")
+                    st.text_input("Ubicación", key="provider_location")
+                    st.slider("Radio de Desplazamiento (km)", 0, 200, 50, key="provider_radius")
+                    st.text_area("Descripción de tus servicios", key="provider_description")
+                    st.file_uploader("Documentos de Certificación (opcional)", accept_multiple_files=True, key="provider_certifications")
                     
-                    if st.button("List My Services"):
-                        st.success("Your profile is now listed in the marketplace!")
+                    if st.button("Publicar Mis Servicios", key="publish_services"):
+                        st.success("¡Tu perfil ahora está listado en el mercado!")
                 else:
-                    st.text_input("Service Needed")
-                    st.text_input("Project Location")
-                    st.slider("Search Radius (km)", 0, 200, 50)
-                    st.date_input("Required By Date")
-                    st.text_area("Job Description")
+                    st.text_input("Servicio Necesario", key="seeker_service")
+                    st.text_input("Ubicación del Proyecto", key="seeker_location")
+                    st.slider("Radio de Búsqueda (km)", 0, 200, 50, key="seeker_radius")
+                    st.date_input("Fecha Requerida", key="seeker_date")
+                    st.text_area("Descripción del Trabajo", key="seeker_description")
                     
-                    if st.button("Post Job"):
-                        st.success("Your job has been posted! You'll be notified of matches.")
+                    if st.button("Publicar Trabajo", key="publish_job"):
+                        st.success("¡Tu trabajo ha sido publicado! Serás notificado de las coincidencias.")
                 
                 st.markdown("</div>", unsafe_allow_html=True)
             
-            # Skills Verification System
+            # Sistema de Verificación de Habilidades
             with st.container():
                 st.markdown('<div class="card">', unsafe_allow_html=True)
-                st.subheader("Skills Verification")
+                st.subheader("Verificación de Habilidades")
                 
                 st.markdown("""
-                Take technical quizzes to earn verified badges for your profile. These will help you stand out to potential employers!
+                Realiza cuestionarios técnicos para ganar insignias verificadas para tu perfil. ¡Estas te ayudarán a destacar ante posibles empleadores!
                 """)
                 
-                available_quizzes = st.selectbox("Available Quizzes", 
-                                            ["Basic Electrical Safety", "Solar Panel Installation", 
-                                            "Battery System Design", "Micro-Hydro Basics",
-                                            "Wind Turbine Maintenance"])
+                available_quizzes = st.selectbox("Cuestionarios Disponibles", 
+                                            ["Seguridad Eléctrica Básica", "Instalación de Paneles Solares", 
+                                            "Diseño de Sistemas de Baterías", "Fundamentos de Micro-Hidro",
+                                            "Mantenimiento de Turbinas Eólicas"],
+                                            key="available_quizzes")
                 
-                if st.button("Start Quiz"):
-                    st.info("Quiz loading... You'll have 30 minutes to complete 20 questions.")
+                if st.button("Iniciar Cuestionario", key="start_quiz"):
+                    st.info("Cargando cuestionario... Tendrás 30 minutos para completar 20 preguntas.")
                 
-                # Sample badges display
-                st.subheader("Your Earned Badges")
+                # Muestra de insignias
+                st.subheader("Tus Insignias Obtenidas")
                 col1, col2, col3 = st.columns(3)
                 
                 with col1:
-                    st.markdown("🔋 **Battery Expert**")
+                    st.markdown("🔋 **Experto en Baterías**")
                 with col2:
-                    st.markdown("⚡ **Electrical Safety**")
+                    st.markdown("⚡ **Seguridad Eléctrica**")
                 with col3:
-                    st.markdown("🛠️ **Solar Installer**")
+                    st.markdown("🛠️ **Instalador Solar**")
                 
                 st.markdown("</div>", unsafe_allow_html=True)
             
-            # Ratings & Reviews
+            # Valoraciones y Reseñas
             with st.container():
                 st.markdown('<div class="card">', unsafe_allow_html=True)
-                st.subheader("Community Ratings")
+                st.subheader("Valoraciones Comunitarias")
                 
-                st.markdown("### Top Rated Professionals")
+                st.markdown("### Profesionales Mejor Valorados")
                 
                 col1, col2 = st.columns(2)
                 with col1:
                     st.markdown("""
-                    **Miguel Rodriguez** ⭐⭐⭐⭐⭐  
-                    Solar Installation Specialist  
-                    23 completed jobs
+                    **Miguel Rodríguez** ⭐⭐⭐⭐⭐  
+                    Especialista en Instalación Solar  
+                    23 trabajos completados
                     
-                    > "Miguel was professional and efficient. Highly recommended!" - Ana C.
+                    > "Miguel fue profesional y eficiente. ¡Muy recomendable!" - Ana C.
                     """)
                 
                 with col2:
                     st.markdown("""
-                    **Sofia Torres** ⭐⭐⭐⭐⭐  
-                    Electrical Engineer  
-                    17 completed jobs
+                    **Sofía Torres** ⭐⭐⭐⭐⭐  
+                    Ingeniera Eléctrica  
+                    17 trabajos completados
                     
-                    > "Sofia helped design our off-grid system and was incredibly knowledgeable." - Marco P.
+                    > "Sofía nos ayudó a diseñar nuestro sistema autónomo y tenía un conocimiento increíble." - Marco P.
                     """)
                 
                 st.markdown("</div>", unsafe_allow_html=True)
         
         with tab3:
-            st.markdown('<h2 class="sub-header">Community Challenges & Incentives</h2>', unsafe_allow_html=True)
+            st.markdown('<h2 class="sub-header">Desafíos e Incentivos Comunitarios</h2>', unsafe_allow_html=True)
             
-            # Active Challenges
+            # Desafíos Activos
             with st.container():
                 st.markdown('<div class="card">', unsafe_allow_html=True)
-                st.subheader("Active Challenges")
+                st.subheader("Desafíos Activos")
                 
-                # Challenge progress bars
-                st.markdown("### 100 Solar Homes Challenge - Guatemala")
+                # Barras de progreso de desafíos
+                st.markdown("### Desafío 100 Hogares Solares - Guatemala")
                 st.progress(65)
-                st.markdown("65/100 homes completed - 15 days remaining")
+                st.markdown("65/100 hogares completados - 15 días restantes")
                 
-                st.markdown("### Wind Power Expansion - Coastal Communities")
+                st.markdown("### Expansión de Energía Eólica - Comunidades Costeras")
                 st.progress(30)
-                st.markdown("3/10 community turbines installed - 45 days remaining")
+                st.markdown("3/10 turbinas comunitarias instaladas - 45 días restantes")
                 
-                st.markdown("### 1000 kWh Energy Savings Challenge")
+                st.markdown("### Desafío de Ahorro de 1000 kWh de Energía")
                 st.progress(82)
-                st.markdown("820/1000 kWh saved this month")
+                st.markdown("820/1000 kWh ahorrados este mes")
                 
                 st.markdown("</div>", unsafe_allow_html=True)
             
-            # Carbon Tracker
+            # Rastreador de Carbono
             with st.container():
                 st.markdown('<div class="card">', unsafe_allow_html=True)
-                st.subheader("Community Impact")
+                st.subheader("Impacto Comunitario")
                 
                 col1, col2, col3 = st.columns(3)
                 
                 with col1:
-                    st.metric(label="CO₂ Reduced", value="523 tonnes", delta="↑ 42 this month")
+                    st.metric(label="CO₂ Reducido", value="523 toneladas", delta="↑ 42 este mes")
                 
                 with col2:
-                    st.metric(label="Renewable kWh Generated", value="87,413", delta="↑ 5,210 this month")
+                    st.metric(label="kWh Renovables Generados", value="87,413", delta="↑ 5,210 este mes")
                 
                 with col3:
-                    st.metric(label="Fossil Fuels Avoided", value="$31,265", delta="↑ $2,845 this month")
+                    st.metric(label="Combustibles Fósiles Evitados", value="$31,265", delta="↑ $2,845 este mes")
                 
-                # Carbon savings chart
-                st.subheader("Monthly Carbon Savings (tonnes CO₂)")
+                # Gráfico de ahorro de carbono
+                st.subheader("Ahorro Mensual de Carbono (toneladas CO₂)")
                 chart_data = {
-                    "months": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+                    "months": ["Ene", "Feb", "Mar", "Abr", "May", "Jun"],
                     "values": [32, 45, 67, 89, 121, 169]
                 }
                 
-                # Here you would add a chart using plotly, altair, etc.
-                st.image("https://via.placeholder.com/800x300?text=Carbon+Savings+Chart", use_column_width=True)
+                # Aquí añadirías un gráfico usando plotly, altair, etc.
+                st.image("https://via.placeholder.com/800x300?text=Gráfico+de+Ahorro+de+Carbono", use_column_width=True)
                 
                 st.markdown("</div>", unsafe_allow_html=True)
             
-            # Rewards & Incentives
+            # Recompensas e Incentivos
             with st.container():
                 st.markdown('<div class="card">', unsafe_allow_html=True)
-                st.subheader("Rewards & Incentives")
+                st.subheader("Recompensas e Incentivos")
                 
                 st.markdown("""
-                ### Available Rewards for Challenge Participants
+                ### Recompensas Disponibles para Participantes de Desafíos
                 
-                - **10% Discount** on solar panels from SunPower Partners
-                - **Free Technical Assessment** for your renewable energy project
-                - **Training Workshops** with certified renewable energy experts
-                - **Community Recognition** and feature in our monthly newsletter
+                - **10% de Descuento** en paneles solares de Socios SunPower
+                - **Evaluación Técnica Gratuita** para tu proyecto de energía renovable
+                - **Talleres de Formación** con expertos certificados en energía renovable
+                - **Reconocimiento Comunitario** y aparición en nuestro boletín mensual
                 
-                ### Your Current Points: 320
+                ### Tus Puntos Actuales: 320
                 
-                Points can be earned by:
-                - Contributing to challenges
-                - Sharing knowledge in the forum
-                - Completing verified projects
-                - Bringing new members to the community
+                Los puntos se pueden ganar mediante:
+                - Contribución a desafíos
+                - Compartir conocimientos en el foro
+                - Completar proyectos verificados
+                - Traer nuevos miembros a la comunidad
                 """)
                 
-                if st.button("Redeem Points"):
-                    st.info("Opening rewards catalog...")
+                if st.button("Canjear Puntos", key="redeem_points"):
+                    st.info("Abriendo catálogo de recompensas...")
                 
                 st.markdown("</div>", unsafe_allow_html=True)
-
-    # Update the sidebar to include the new menu option
-    # In your app's initialization section, add:
-    # if "menu" not in st.session_state:
-    #     st.session_state.menu = "Dashboard"
-
-    # Then in your sidebar code:
-    # st.sidebar.markdown('<div class="sidebar-menu">', unsafe_allow_html=True)
-    # for option in ["Dashboard", "Apartado 2", "Community Hub"]:
-    #     if st.sidebar.button(option, key=option):
-    #         st.session_state.menu = option
-    # st.sidebar.markdown('</div>', unsafe_allow_html=True)
